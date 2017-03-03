@@ -1,27 +1,27 @@
----
-title: "Calculate Global Intensities"
-author: "Dani Cosme"
-date: "September 27, 2016"
-output: html_document
----
+# author: dani cosme
+# email: dcosme@uoregon.edu
+# version: 0.1
+# date: 2017-03-03
 
+# This script loads functional volumes, calculates the mean global intensity value,
+# and returns a csv file 'study_globalIntensities.csv'
+
+#------------------------------------------------------
 # load packages
-```{r, warning=FALSE, message=FALSE}
+#------------------------------------------------------
 osuRepo = 'http://ftp.osuosl.org/pub/cran/'
 
 if(!require(fslr)){
-	install.packages('fslr',repos=osuRepo)
+  install.packages('fslr',repos=osuRepo)
 }
 if(!require(tidyverse)){
-	install.packages('tidyverse',repos=osuRepo)
+  install.packages('tidyverse',repos=osuRepo)
 }
-if(!require(knitr)){
-	install.packages('knitr',repos=osuRepo)
-}
-```
 
+#------------------------------------------------------
 # define variables
-```{r}
+#------------------------------------------------------
+
 # paths
 subjectDir = "/Volumes/psych-cog/dsnlab/TDS/archive/subjects_G80/"
 functionalDir = "/ppc/functionals/"
@@ -32,10 +32,11 @@ outputDir = '/Volumes/psych-cog/dsnlab/auto-motion-output/'
 study = "tds"
 subPattern = "^t[0-9]{3}"
 prefix = "or" #prefix for functional files (or = reoriented, realigned)
-```
 
+#------------------------------------------------------
 # calculate mean intensity for each functional image
-```{r}
+#------------------------------------------------------
+
 # get subjects list from subject directory
 subjects = list.files(subjectDir, pattern = subPattern)
 
@@ -52,34 +53,33 @@ for (sub in subjects){
     file_list = list.files(path, pattern = filePattern)
     
     for (file in file_list)
-    # if the merged dataset doesn't exist, create it
-    if (!exists("dataset")){
-      img = readnii(paste0(path,"/",file))
-      dataset = data.frame(subjectID = sub,
-                           file = file,
-                           run = run,
-                           volMean = mean(img, na.rm = TRUE),
-                           volSD = sd(img, na.rm = TRUE)) %>%
-        extract(file, c("volume"), filePattern)
-    }
-
+      # if the merged dataset doesn't exist, create it
+      if (!exists("dataset")){
+        img = readnii(paste0(path,"/",file))
+        dataset = data.frame(subjectID = sub,
+                             file = file,
+                             run = run,
+                             volMean = mean(img, na.rm = TRUE),
+                             volSD = sd(img, na.rm = TRUE)) %>%
+          extract(file, c("volume"), filePattern)
+      }
+    
     # if the merged dataset does exist, append to it
     else {
       img = readnii(paste0(path,"/",file))
       temp_dataset = data.frame(subjectID = sub,
-                           file = file,
-                           run = run,
-                           volMean = mean(img, na.rm = TRUE),
-                           volSD = sd(img, na.rm = TRUE)) %>%
+                                file = file,
+                                run = run,
+                                volMean = mean(img, na.rm = TRUE),
+                                volSD = sd(img, na.rm = TRUE)) %>%
         extract(file, c("volume"), filePattern)
       dataset <- rbind(dataset, temp_dataset)
       rm(temp_dataset)
     }
   }
 }
-```
 
+#------------------------------------------------------
 # write csv
-```{r}
+#------------------------------------------------------
 write.csv(dataset, paste0(outputDir,study,'_globalIntensities.csv'), row.names = FALSE)
-```
