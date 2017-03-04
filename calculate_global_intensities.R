@@ -52,7 +52,7 @@ for (sub in subjects){
     path = paste0(subjectDir,sub,functionalDir,run)
     file_list = list.files(path, pattern = filePattern)
     
-    for (file in file_list)
+    for (file in file_list){
       # if the merged dataset doesn't exist, create it
       if (!exists("dataset")){
         img = readnii(paste0(path,"/",file))
@@ -65,16 +65,17 @@ for (sub in subjects){
       }
     
     # if the merged dataset does exist, append to it
-    else {
-      img = readnii(paste0(path,"/",file))
-      temp_dataset = data.frame(subjectID = sub,
-                                file = file,
-                                run = run,
-                                volMean = mean(img, na.rm = TRUE),
-                                volSD = sd(img, na.rm = TRUE)) %>%
-        extract(file, c("volume"), filePattern)
-      dataset <- rbind(dataset, temp_dataset)
-      rm(temp_dataset)
+      else {
+        img = readnii(paste0(path,"/",file))
+        temp_dataset = data.frame(subjectID = sub,
+                                  file = file,
+                                  run = run,
+                                  volMean = mean(img, na.rm = TRUE),
+                                  volSD = sd(img, na.rm = TRUE)) %>%
+          extract(file, c("volume"), filePattern)
+        dataset <- rbind(dataset, temp_dataset)
+        rm(temp_dataset)
+      }
     }
   }
 }

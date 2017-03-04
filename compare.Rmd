@@ -1,0 +1,103 @@
+---
+title: "compare"
+author: "Dani Cosme"
+date: "March 3, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# define variables
+```{r}
+# paths
+outputDir = '/Volumes/psych-cog/dsnlab/auto-motion-output/'
+
+# variables
+study = "tds"
+```
+
+# load data
+```{r}
+# global intensity file created using calculate_global_intensities.R
+intensities = read.csv(paste0(outputDir,study,'_globalIntensities.csv'))
+
+# manually coded file created using manually_coded.R
+manual = read.csv(paste0(outputDir,study,'_manuallyCoded.csv'))
+```
+
+# create trash regressors
+```{r}
+trash = intensities %>% group_by(subjectID, run) %>%
+        mutate(Diff = volMean - lag(volMean)) %>%
+        ungroup %>%
+        mutate(volume = as.integer(volume),
+               meanDiff = mean(Diff, na.rm=TRUE),
+               sdDiff = sd(Diff, na.rm=TRUE),
+               thresholdDiff = sdDiff*1.5, 
+               trashDiff = ifelse(Diff > (meanDiff + thresholdDiff) | Diff < (meanDiff - thresholdDiff), 1, 0),
+               behind = lead(trashDiff), 
+               ahead = lag(trashDiff), 
+               trashDiff = ifelse(trashDiff == 0 & behind == 1 & ahead == 1, 1, trashDiff)) %>%
+        mutate(behind = lag(trashDiff),
+               ahead = lead(trashDiff),
+               trashDiff = ifelse(trashDiff == 0 & behind == 1 & ahead == 1, 1, trashDiff),
+               behind = lag(trashDiff),
+               ahead = lead(trashDiff),
+               aheadVal = lead(Diff),
+               # reduce false positives on last volume in motion sequence
+               trashDiff = ifelse(trashDiff == 1 & behind == 1 & ahead == 0 & aheadVal < (meanDiff + sdDiff) & aheadVal > (meanDiff - sdDiff), 0, trashDiff)) %>%
+        select(subjectID, run, volume, Diff, trashDiff, trash)
+```
+
+# compare to manual data
+```{r}
+# filter trash dataframe and join with filteredMotion
+joined = trash %>% 
+  mutate(behind = lag(trashDiff),
+         ahead = lead(trashDiff),
+         trashDiff = ifelse(trashDiff == 0 & behind == 1 & ahead == 1, 1, trashDiff),
+         behind = lag(trashDiff),
+         ahead = lead(trashDiff),
+         aheadVal = lead(Diff),
+         # reduce false positives on last volume in motion sequence
+         trashDiff = ifelse(trashDiff == 1 & behind == 1 & ahead == 0 & aheadVal < (meanDiff + sdDiff) & aheadVal > (meanDiff - sdDiff), 0, trashDiff)) %>%
+  select(subjectID, run, volume, Diff, trashDiff, trash)
+
+# check false negatives
+falseNeg = joined %>% filter(trashDiff == 0 & trash == 1)
+
+# check false positives
+falsePos = joined %>% filter(trashDiff == 1 & trash == 0)
+
+# check hits
+hits = joined %>% filter(trashDiff == 1 & trash == 1)
+```
+
+# summarize results
+```{r}
+# print group-level results
+data.frame(falseNeg = length(falseNeg$trash), falsePos = length(falsePos$trash), hits = length(hits$trash)) %>% kable(format = "pandoc")
+
+# summarize by participants
+nVol = joined %>% group_by(subjectID) %>% summarize(nVol = length(volume))
+summaryPos = falsePos %>% group_by(subjectID) %>% summarize(falsePos = sum(trashDiff, na.rm=T))
+summaryNeg = falseNeg %>% group_by(subjectID) %>% summarize(falseNeg = sum(trash, na.rm=T))
+summaryPosNeg = nVol %>%
+  full_join(., summaryPos, by = "subjectID") %>% 
+  full_join(., summaryNeg, by = "subjectID") %>% 
+  mutate(falseNeg = ifelse(is.na(falseNeg), 0, falseNeg), 
+         falsePos = ifelse(is.na(falsePos), 0, falsePos), 
+         totalErrors = falsePos + falseNeg,
+         percentErrors = (totalErrors/nVol)*100)
+
+# print subject-level results
+joined %>% group_by(subjectID) %>% 
+  summarise(trashManual = sum(trash, na.rm = T), 
+            trashAuto = sum(trashDiff, na.rm = T)) %>%
+  full_join(., summaryPosNeg, by = "subjectID") %>%
+  select(-nVol) %>%
+  arrange(trashManual) %>%
+  kable(format = "pandoc", digits = 1)
+```
