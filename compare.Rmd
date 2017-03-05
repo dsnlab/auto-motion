@@ -27,7 +27,7 @@ study = "tds"
 # load data
 ```{r}
 # global intensity file created using calculate_global_intensities.R
-intensities = read.csv(paste0(outputDir,study,'_globalIntensities.csv'))
+trash = read.csv(paste0(outputDir,study,'_autoTrash.csv'))
 
 # manually coded file created using manually_coded.R
 manual = read.csv(paste0(outputDir,study,'_manuallyCoded.csv'))
@@ -38,7 +38,7 @@ manual = read.csv(paste0(outputDir,study,'_manuallyCoded.csv'))
 # filter trash dataframe and join with filteredMotion
 joined = trash %>% 
   left_join(., manual, by = c("subjectID","run","volume")) %>%
-  select(subjectID, run, volume, Diff, trashDiff, trash)
+  select(subjectID, run, volume, Diff.mean, Diff.sd, trashDiff, trash)
 
 # check false negatives
 falseNeg = joined %>% filter(trashDiff == 0 & trash == 1)

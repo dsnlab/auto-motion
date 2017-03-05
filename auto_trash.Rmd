@@ -25,20 +25,27 @@ intensities = read.csv(paste0(outputDir,study,'_globalIntensities.csv'))
 # create trash regressors
 #------------------------------------------------------
 trash = intensities %>% group_by(subjectID, run) %>%
-        mutate(Diff = volMean - lag(volMean)) %>%
+        mutate(Diff.mean = volMean - lag(volMean),
+               Diff.sd = volSD - lag(volSD)) %>%
         ungroup %>%
-        mutate(meanDiff = mean(Diff, na.rm=TRUE),
-               sdDiff = sd(Diff, na.rm=TRUE),
-               thresholdDiff = sdDiff*2, 
-               trashDiff = ifelse(Diff > (meanDiff + thresholdDiff) | Diff < (meanDiff - thresholdDiff), 1, 0),
+        mutate(meanDiff.mean = mean(Diff.mean, na.rm=TRUE),
+               sdDiff.mean = sd(Diff.mean, na.rm=TRUE),
+               thresholdDiff.mean = sdDiff.mean*2.5, 
+
+               meanDiff.sd = mean(Diff.sd, na.rm=TRUE),
+               sdDiff.sd = sd(Diff.sd, na.rm=TRUE),
+               thresholdDiff.sd = sdDiff.sd*2.5, 
+               
+               trashDiff = ifelse(Diff.mean > (meanDiff.mean + thresholdDiff.mean) | Diff.mean < (meanDiff.mean - thresholdDiff.mean), 1, 0),
+               trashDiff = ifelse(Diff.sd > (meanDiff.sd + thresholdDiff.sd) | Diff.sd < (meanDiff.sd - thresholdDiff.sd), 2, 0),
                behind = lead(trashDiff), 
                ahead = lag(trashDiff), 
                # recode as trash if volume behind and in front are both marked as trash
-               trashDiff = ifelse(trashDiff == 0 & behind == 1 & ahead == 1, 1, trashDiff),
-               aheadVal = lead(Diff)) %>%
+               trashDiff = ifelse(trashDiff == 0 & behind == 1 & ahead == 1, 1, trashDiff)) %>%
+               #aheadVal. = lead(Diff.mean)) %>%
                # reduce false positives on last volume in motion sequence
                #trashDiff = ifelse(trashDiff == 1 & behind == 1 & ahead == 0 & aheadVal < (meanDiff + sdDiff) & aheadVal > (meanDiff - sdDiff), 0, trashDiff)) %>%
-        select(subjectID, run, volume, Diff, trashDiff, trashDiff)
+        select(subjectID, run, volume, Diff.mean, Diff.sd, trashDiff)
 
 #------------------------------------------------------
 # write csv
