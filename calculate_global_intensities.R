@@ -59,8 +59,8 @@ for (sub in subjects){
         dataset = data.frame(subjectID = sub,
                              file = file,
                              run = run,
-                             volMean = mean(img, na.rm = TRUE),
-                             volSD = sd(img, na.rm = TRUE)) %>%
+                             volMean = mean(img[img > 4000], na.rm=TRUE),
+                             volSD = sd(img[img > 4000], na.rm=TRUE)) %>%
           extract(file, c("volume"), filePattern)
       }
     
@@ -70,8 +70,8 @@ for (sub in subjects){
         temp_dataset = data.frame(subjectID = sub,
                                   file = file,
                                   run = run,
-                                  volMean = mean(img, na.rm = TRUE),
-                                  volSD = sd(img, na.rm = TRUE)) %>%
+                                  volMean = mean(img[img > 4000], na.rm=TRUE),
+                                  volSD = sd(img[img > 4000], na.rm=TRUE)) %>%
           extract(file, c("volume"), filePattern)
         dataset <- rbind(dataset, temp_dataset)
         rm(temp_dataset)
