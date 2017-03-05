@@ -3,8 +3,7 @@
 # version: 0.1
 # date: 2017-03-03
 
-# This script loads manually coded rp_txt files for each subject and run, concatenates them,
-# and returns a csv file 'study_manuallyCoded.csv'
+# This script loads afni 3dToutCount files and returns 'study_outcount.csv'
 
 #------------------------------------------------------
 # load packages
@@ -20,38 +19,35 @@ if(!require(tidyverse)){
 #------------------------------------------------------
 
 # paths
-artifactDir = "/Volumes/psych-cog/dsnlab/TDS/archive/motion_QC/G80/rp_art_txt/"
+afniDir = "/Volumes/psych-cog/dsnlab/auto-motion-output/AFNI/"
 outputDir = '/Volumes/psych-cog/dsnlab/auto-motion-output/'
 
 # variables
 study = "tds"
-rpPattern = "^rp_(t[0-9]{3})_(.*).txt"
-rpCols = c("euclidian_trans","euclidian_rot","euclidian_trans_deriv","euclidian_rot_deriv","trash")
+pattern = "(t[0-9]{3})_(.*)_(p[0-9]{1}).csv"
 
 #------------------------------------------------------
 # load files and concatenate them
 #------------------------------------------------------
 
 # generate file list
-file_list = list.files(artifactDir, pattern = rpPattern)
+file_list = list.files(afniDir, pattern = pattern)
 
 for (file in file_list){
   # if the merged dataset doesn't exist, create it
   if (!exists("dataset")){
-    temp = read.table(paste0(artifactDir,file))
-    colnames(temp) = c("euclidian_trans","euclidian_rot","euclidian_trans_deriv","euclidian_rot_deriv","trash")
-    dataset = data.frame(temp, file = rep(file,count(temp))) %>% 
+    temp = read.table(paste0(afniDir,file)) %>% rename("outliers" = V1)
+    dataset = data.frame(file = rep(file,count(temp)), temp) %>% 
       mutate(volume = sprintf("%04d",row_number())) %>%
-      extract(file,c("subjectID","run"), rpPattern)
+      extract(file,c("subjectID","run","poly"), pattern)
   }
-
-# if the merged dataset does exist, append to it
+  
+  # if the merged dataset does exist, append to it
   else {
-    temp_dataset = read.table(paste0(artifactDir,file))
-    colnames(temp_dataset) = c("euclidian_trans","euclidian_rot","euclidian_trans_deriv","euclidian_rot_deriv","trash")
-    temp_dataset = data.frame(temp_dataset, file = rep(file,count(temp_dataset))) %>% 
+    temp_dataset = read.table(paste0(afniDir,file)) %>% rename("outliers" = V1)
+    temp_dataset = data.frame(file = rep(file,count(temp)), temp) %>% 
       mutate(volume = sprintf("%04d",row_number())) %>%
-      extract(file,c("subjectID","run"), rpPattern)
+      extract(file,c("subjectID","run","poly"), pattern)
     dataset = rbind(dataset, temp_dataset)
     rm(temp_dataset)
   }
@@ -60,4 +56,4 @@ for (file in file_list){
 #------------------------------------------------------
 # write csv
 #------------------------------------------------------
-write.csv(dataset, paste0(outputDir,study,'_manuallyCoded.csv'), row.names = FALSE)
+write.csv(dataset, paste0(outputDir,study,'_outcount.csv'), row.names = FALSE)

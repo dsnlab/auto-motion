@@ -1,0 +1,47 @@
+# author: dani cosme
+# email: dcosme@uoregon.edu
+# version: 0.1
+# date: 2017-03-04
+
+# This script loads globalIntensity file, codes volues as trash, and 
+# returns 'study_autoTrash.csv'
+
+#------------------------------------------------------
+# define variables
+#------------------------------------------------------
+# paths
+outputDir = '/Volumes/psych-cog/dsnlab/auto-motion-output/'
+
+# variables
+study = "tds"
+
+#------------------------------------------------------
+# load data
+#------------------------------------------------------
+# global intensity file created using calculate_global_intensities.R
+intensities = read.csv(paste0(outputDir,study,'_globalIntensities.csv'))
+
+#------------------------------------------------------
+# create trash regressors
+#------------------------------------------------------
+trash = intensities %>% group_by(subjectID, run) %>%
+        mutate(Diff = volMean - lag(volMean)) %>%
+        ungroup %>%
+        mutate(meanDiff = mean(Diff, na.rm=TRUE),
+               sdDiff = sd(Diff, na.rm=TRUE),
+               thresholdDiff = sdDiff*2, 
+               trashDiff = ifelse(Diff > (meanDiff + thresholdDiff) | Diff < (meanDiff - thresholdDiff), 1, 0),
+               behind = lead(trashDiff), 
+               ahead = lag(trashDiff), 
+               # recode as trash if volume behind and in front are both marked as trash
+               trashDiff = ifelse(trashDiff == 0 & behind == 1 & ahead == 1, 1, trashDiff),
+               aheadVal = lead(Diff)) %>%
+               # reduce false positives on last volume in motion sequence
+               #trashDiff = ifelse(trashDiff == 1 & behind == 1 & ahead == 0 & aheadVal < (meanDiff + sdDiff) & aheadVal > (meanDiff - sdDiff), 0, trashDiff)) %>%
+        select(subjectID, run, volume, Diff, trashDiff, trashDiff)
+
+#------------------------------------------------------
+# write csv
+#------------------------------------------------------
+write.csv(trash, paste0(outputDir,study,'_autoTrash.csv'), row.names = FALSE)
+
