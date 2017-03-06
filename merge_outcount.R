@@ -44,7 +44,7 @@ for (file in file_list){
   
   # if the merged dataset does exist, append to it
   else {
-    temp_dataset = read.table(paste0(afniDir,file)) %>% rename("outliers" = V1)
+    temp = read.table(paste0(afniDir,file)) %>% rename("outliers" = V1)
     temp_dataset = data.frame(file = rep(file,count(temp)), temp) %>% 
       mutate(volume = sprintf("%04d",row_number())) %>%
       extract(file,c("subjectID","run","poly"), pattern)
@@ -52,6 +52,7 @@ for (file in file_list){
     rm(temp_dataset)
   }
 }
+
 
 #------------------------------------------------------
 # write csv

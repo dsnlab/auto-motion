@@ -37,7 +37,7 @@ trash = intensities %>% group_by(subjectID, run) %>%
                thresholdDiff.sd = sdDiff.sd*2.5, 
                
                trashDiff = ifelse(Diff.mean > (meanDiff.mean + thresholdDiff.mean) | Diff.mean < (meanDiff.mean - thresholdDiff.mean), 1, 0),
-               trashDiff = ifelse(Diff.sd > (meanDiff.sd + thresholdDiff.sd) | Diff.sd < (meanDiff.sd - thresholdDiff.sd), 2, 0),
+               #trashDiff = ifelse(Diff.sd > (meanDiff.sd + thresholdDiff.sd) | Diff.sd < (meanDiff.sd - thresholdDiff.sd), 2, 0),
                behind = lead(trashDiff), 
                ahead = lag(trashDiff), 
                # recode as trash if volume behind and in front are both marked as trash
@@ -45,7 +45,7 @@ trash = intensities %>% group_by(subjectID, run) %>%
                #aheadVal. = lead(Diff.mean)) %>%
                # reduce false positives on last volume in motion sequence
                #trashDiff = ifelse(trashDiff == 1 & behind == 1 & ahead == 0 & aheadVal < (meanDiff + sdDiff) & aheadVal > (meanDiff - sdDiff), 0, trashDiff)) %>%
-        select(subjectID, run, volume, Diff.mean, Diff.sd, trashDiff)
+        select(subjectID, run, volume, Diff.mean, Diff.sd, volMean, volSD, trashDiff)
 
 #------------------------------------------------------
 # write csv
