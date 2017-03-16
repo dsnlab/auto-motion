@@ -1,10 +1,22 @@
-# author: dani cosme
+# author: Dani Cosme
 # email: dcosme@uoregon.edu
 # version: 0.1
 # date: 2017-03-03
 
 # This script loads functional volumes, calculates the mean global intensity value,
 # and returns a csv file 'study_globalIntensities.csv'
+# 
+# Inputs:
+# * subjectDir = path to subject directory
+# * functionalDir = path from subject's directory to to functional files
+# * outputDir = path where study_globalIntensities.csv will be written
+# * study = study name
+# * subPattern = regular expression for subject IDs
+# * prefix = SPM prefix appended to functional images; use "" to ignore
+# * runPattern = regular expression for run names; use "" to specify all directories in $functionalDir
+# 
+# Outputs:
+# * study_globalIntensities.csv = CSV file with global intensity value for each image
 
 #------------------------------------------------------
 # load packages
@@ -20,18 +32,20 @@ if(!require(tidyverse)){
 
 #------------------------------------------------------
 # define variables
+# these variables are all you should need to change
+# to run the script
 #------------------------------------------------------
 
 # paths
-subjectDir = "/Volumes/psych-cog/dsnlab/TDS/archive/subjects_G80/"
-functionalDir = "/ppc/functionals/"
-motionDir = "/Volumes/psych-cog/dsnlab/TDS/archive/motion_QC/G80/"
-outputDir = '/Volumes/psych-cog/dsnlab/auto-motion-output/'
+subjectDir = "/Volumes/psych-cog/dsnlab/FP_analysis.bak/fMRI/subjects/" #"/Volumes/psych-cog/dsnlab/TDS/archive/subjects_G80/"
+functionalDir = "/mvpa/" #"/ppc/functionals/"
+outputDir = "/Volumes/psych-cog/dsnlab/auto-motion-output/" 
 
 # variables
-study = "tds"
-subPattern = "^t[0-9]{3}"
-prefix = "or" #prefix for functional files (or = reoriented, realigned)
+study = "FP"
+subPattern = "^FP[0-9]{3}"
+prefix = "cr" 
+runPattern = "^run*" 
 
 #------------------------------------------------------
 # calculate mean intensity for each functional image
@@ -42,11 +56,12 @@ subjects = list.files(subjectDir, pattern = subPattern)
 
 for (sub in subjects){
   # get runs from functional directory
-  runs = list.files(paste0(subjectDir,sub,functionalDir))
+  runs = list.files(paste0(subjectDir,sub,functionalDir), pattern=runPattern)
   
   for (run in runs){
     # assign pattern based on prefix and run
-    filePattern = paste0('^',prefix,'.*',run,'_([0-9]{4}).nii.*')
+    filePattern = paste0('^',prefix,'.*',run,'.nii.*')
+    # filePattern = paste0('^',prefix,'.*',run,'_([0-9]{4}).nii.*')
     
     # generate file path
     path = paste0(subjectDir,sub,functionalDir,run)
@@ -63,8 +78,8 @@ for (sub in subjects){
                              volSD = sd(img[img > 4000], na.rm=TRUE)) %>%
           extract(file, c("volume"), filePattern)
       }
-    
-    # if the merged dataset does exist, append to it
+      
+      # if the merged dataset does exist, append to it
       else {
         img = readnii(paste0(path,"/",file))
         temp_dataset = data.frame(subjectID = sub,
@@ -78,7 +93,7 @@ for (sub in subjects){
       }
     }
   }
-}
+} 
 
 #------------------------------------------------------
 # write csv

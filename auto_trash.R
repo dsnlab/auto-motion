@@ -13,7 +13,7 @@
 outputDir = '/Volumes/psych-cog/dsnlab/auto-motion-output/'
 
 # variables
-study = "tds"
+study = "FP"
 
 #------------------------------------------------------
 # load data
