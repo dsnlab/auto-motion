@@ -19,12 +19,12 @@ if(!require(tidyverse)){
 #------------------------------------------------------
 
 # paths
-afniDir = "/Volumes/psych-cog/dsnlab/auto-motion-output/AFNI/"
+afniDir = "/Volumes/psych-cog/dsnlab/auto-motion-output/AFNI/FP/"
 outputDir = '/Volumes/psych-cog/dsnlab/auto-motion-output/'
 
 # variables
-study = "tds"
-pattern = "(t[0-9]{3})_(.*)_(p[0-9]{1}).csv"
+study = "FP"
+pattern = "(FP[0-9]{3})_(.*)_(p[0-9]{1}).csv"
 
 #------------------------------------------------------
 # load files and concatenate them

@@ -20,12 +20,12 @@ if(!require(tidyverse)){
 #------------------------------------------------------
 
 # paths
-artifactDir = "/Volumes/psych-cog/dsnlab/TDS/archive/motion_QC/G80/rp_art_txt/"
-outputDir = '/Volumes/psych-cog/dsnlab/auto-motion-output/'
+artifactDir = "/Volumes/FP/research/dsnlab/Studies/FP/motion/rp_art_txt/"
+outputDir = "/Volumes/psych-cog/dsnlab/auto-motion-output/"
 
 # variables
-study = "tds"
-rpPattern = "^rp_(t[0-9]{3})_(.*).txt"
+study = "FP"
+rpPattern = "^rp_(FP[0-9]{3})_(.*).txt"
 rpCols = c("euclidian_trans","euclidian_rot","euclidian_trans_deriv","euclidian_rot_deriv","trash")
 
 #------------------------------------------------------

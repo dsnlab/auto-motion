@@ -21,7 +21,7 @@ library(knitr)
 outputDir = '/Volumes/psych-cog/dsnlab/auto-motion-output/'
 
 # variables
-study = "tds"
+study = "FP"
 ```
 
 # load data
@@ -33,7 +33,7 @@ trash = read.csv(paste0(outputDir,study,'_autoTrash.csv'))
 manual = read.csv(paste0(outputDir,study,'_manuallyCoded.csv'))
 
 # afni 3dToutCount outlier created using merge_outcount.R
-outcount = read.csv(paste0(outputDir,study,'_outcount.csv')) %>% 
+outcount = read.csv(paste0(outputDir,study,'_outcount.csv')) %>%
   filter(poly == "p2") %>%
   mutate(trashOut = ifelse(outliers > .075, 1, 0))
 ```
@@ -45,11 +45,14 @@ joined = trash %>%
   left_join(., manual, by = c("subjectID","run","volume")) %>%
   left_join(., outcount, by = c("subjectID","run","volume")) %>%
   select(subjectID, run, volume, volMean, volSD, trashDiff, trashOut, trash) %>%
+  #select(subjectID, run, volume, volMean, volSD, trashDiff, trash) %>%
   mutate(auto = ifelse(trashDiff == 1 & trash == 1, 2, 
                                 ifelse(trashDiff == 1 & trash == 0, 3, trash)),
-         outcount = ifelse(trashOut == 1 & trash == 1, 2, 
-                                ifelse(trashOut == 1 & trash == 0, 3, trash))) %>%
+         outcount = ifelse(trashOut == 1 & trash == 1, 2,
+                         ifelse(trashOut == 1 & trash == 0, 3, trash)))
+joined.plot = joined %>%
   gather(compare, code, -c(subjectID, run, volume, volMean, volSD, trashDiff, trashOut, trash))
+  #gather(compare, code, -c(subjectID, run, volume, volMean, volSD, trashDiff, trash))
 
 # check false negatives
 falseNeg.auto = joined %>% filter(trashDiff == 0 & trash == 1)
@@ -67,11 +70,16 @@ hits.outcount = joined %>% filter(trashOut == 1 & trash == 1)
 # summarize results
 ## print group-level results
 ```{r}
-table = data.frame(falseNeg = c(length(falseNeg.auto$trash),length(falseNeg.outcount$trash)), 
-           falsePos = c(length(falsePos.auto$trash),length(falsePos.outcount$trash)), 
+table = data.frame(falseNeg = c(length(falseNeg.auto$trash),length(falseNeg.outcount$trash)),
+           falsePos = c(length(falsePos.auto$trash),length(falsePos.outcount$trash)),
            hits = c(length(hits.auto$trash),length(hits.outcount$trash)))
 row.names(table)=c("auto","outcount")
 kable(table,format = "pandoc")
+# table = data.frame(falseNeg = c(length(falseNeg.auto$trash)), 
+#            falsePos = c(length(falsePos.auto$trash)), 
+#            hits = c(length(hits.auto$trash)))
+# row.names(table)=c("auto")
+# kable(table,format = "pandoc")
 ```
 
 ## summarize by participants
@@ -101,7 +109,7 @@ joined %>% group_by(subjectID) %>%
 
 ```{r}
 # visualize for each subject subject
-joined.plot = joined %>% mutate(code = as.factor(code)) %>%
+joined.plot = joined.plot %>% mutate(code = as.factor(code)) %>%
   select(subjectID, run, volume, volMean, volSD, compare, code) %>%
   gather(measure, value, -c(subjectID, run, compare, volume, code))
 
@@ -111,8 +119,7 @@ nada = joined.plot %>% group_by(subjectID) %>%
       geom_point(aes(color = code)) + 
       geom_line() + 
       facet_grid(measure + compare ~ run, scales= "free") +
-      scale_colour_hue(drop = FALSE) +
-      scale_colour_discrete(labels=c("not trash", "false neg", "hit", "false pos")) + 
+      scale_colour_discrete(drop = FALSE, labels=c("not trash", "false neg", "hit", "false pos")) + 
       labs(title = .$subjectID[[1]])
     print(plot)
     #ggsave(plot, file=paste0(outputDir,'plots/',.$subjectID[[1]],'.png'), width = 12)

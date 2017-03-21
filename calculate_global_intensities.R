@@ -14,6 +14,7 @@
 # * subPattern = regular expression for subject IDs
 # * prefix = SPM prefix appended to functional images; use "" to ignore
 # * runPattern = regular expression for run names; use "" to specify all directories in $functionalDir
+# * threshold = voxel intensity value used to truncate the distribution
 # 
 # Outputs:
 # * study_globalIntensities.csv = CSV file with global intensity value for each image
@@ -37,15 +38,16 @@ if(!require(tidyverse)){
 #------------------------------------------------------
 
 # paths
-subjectDir = "/Volumes/psych-cog/dsnlab/FP_analysis.bak/fMRI/subjects/" #"/Volumes/psych-cog/dsnlab/TDS/archive/subjects_G80/"
-functionalDir = "/mvpa/" #"/ppc/functionals/"
+subjectDir = "/Volumes/FP/research/dsnlab/Studies/FP/subjects/" #"/Volumes/psych-cog/dsnlab/TDS/archive/subjects_G80/"
+functionalDir = "/ppc/functionals/"
 outputDir = "/Volumes/psych-cog/dsnlab/auto-motion-output/" 
 
 # variables
 study = "FP"
 subPattern = "^FP[0-9]{3}"
-prefix = "cr" 
+prefix = "o" 
 runPattern = "^run*" 
+threshold = 5000
 
 #------------------------------------------------------
 # calculate mean intensity for each functional image
@@ -60,8 +62,8 @@ for (sub in subjects){
   
   for (run in runs){
     # assign pattern based on prefix and run
-    filePattern = paste0('^',prefix,'.*',run,'.nii.*')
-    # filePattern = paste0('^',prefix,'.*',run,'_([0-9]{4}).nii.*')
+    # filePattern = paste0('^',prefix,'.*',run,'.nii.*') # MVPA file pattern
+    filePattern = paste0('^',prefix,'.*',run,'_([0-9]{4}).nii.*')
     
     # generate file path
     path = paste0(subjectDir,sub,functionalDir,run)
@@ -74,8 +76,8 @@ for (sub in subjects){
         dataset = data.frame(subjectID = sub,
                              file = file,
                              run = run,
-                             volMean = mean(img[img > 4000], na.rm=TRUE),
-                             volSD = sd(img[img > 4000], na.rm=TRUE)) %>%
+                             volMean = mean(img[img > threshold], na.rm=TRUE),
+                             volSD = sd(img[img > threshold], na.rm=TRUE)) %>%
           extract(file, c("volume"), filePattern)
       }
       
@@ -85,8 +87,8 @@ for (sub in subjects){
         temp_dataset = data.frame(subjectID = sub,
                                   file = file,
                                   run = run,
-                                  volMean = mean(img[img > 4000], na.rm=TRUE),
-                                  volSD = sd(img[img > 4000], na.rm=TRUE)) %>%
+                                  volMean = mean(img[img > threshold], na.rm=TRUE),
+                                  volSD = sd(img[img > threshold], na.rm=TRUE)) %>%
           extract(file, c("volume"), filePattern)
         dataset <- rbind(dataset, temp_dataset)
         rm(temp_dataset)
