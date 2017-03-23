@@ -25,7 +25,7 @@
 osuRepo = 'http://ftp.osuosl.org/pub/cran/'
 
 if(!require(RNifti)){
-  install.packages('RNifti',repos=osuRepo)
+  devtools::install_github("jonclayden/RNifti")
 }
 require(RNifti)
 if(!require(tidyverse)){
@@ -79,7 +79,7 @@ globint_for_sub <- function(sub, subjectDir, functionalDir, runPattern, prefix, 
     for (file in file_list){
       # if the merged dataset doesn't exist, create it
       if (!exists("dataset")){
-        img = RNifti::readNifti(paste0(path,"/",file)) #using `::` allows us to not load the package when parallelized
+        img = RNifti::readNifti(paste0(path,"/",file), internal = FALSE) #using `::` allows us to not load the package when parallelized
         dataset = tidyr::extract(data.frame(subjectID = sub,
                                             file = file,
                                             run = run,
@@ -90,7 +90,7 @@ globint_for_sub <- function(sub, subjectDir, functionalDir, runPattern, prefix, 
       
       # if the merged dataset does exist, append to it
       else {
-        img = RNifti::readNifti(paste0(path,"/",file))
+        img = RNifti::readNifti(paste0(path,"/",file), internal = FALSE)
         temp_dataset = tidyr::extract(data.frame(subjectID = sub,
                                                  file = file,
                                                  run = run,
