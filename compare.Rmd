@@ -107,7 +107,74 @@ joined.plot = joined.plot %>% mutate(code = as.factor(code)) %>%
   gather(measure, value, -c(subjectID, run, compare, volume, code)) %>%
   filter(compare == "auto")
 
-# nada = joined.plot %>% group_by(subjectID) %>%
+nada = joined.plot %>% group_by(subjectID) %>%
+  do({
+    plot = ggplot(., aes(volume, value)) +
+      geom_point(aes(color = code)) +
+      geom_line() +
+      facet_grid(measure + compare ~ run, scales= "free") +
+      scale_colour_discrete(drop = FALSE, labels=c("not trash", "false neg", "hit", "false pos")) +
+      labs(title = .$subjectID[[1]])
+    print(plot)
+    #ggsave(plot, file=paste0(outputDir,'plots/',.$subjectID[[1]],'.png'), width = 12)
+    data.frame()
+  })
+```
+
+# predict manually coded data using a linear discriminant classifier
+```{r}
+# library(caret)
+# data = joined %>%
+#   dplyr::select(subjectID, run, volume, auto, volMean, volSD, Diff.mean, Diff.sd, matches("euclidian.*deriv"), trash) %>%
+#   mutate(trash = ifelse(trash == 1, "trash", "notTrash")) %>%
+#   na.omit()
+# 
+# inTraining = createDataPartition(data$subjectID, p=.75, list=F)
+# training = data[inTraining,]
+# testing = data[-inTraining,]
+# 
+# fitControl = trainControl(## 10-fold CV
+#                            method = "repeatedcv",
+#                            number = 10,
+#                            ## repeated ten times
+#                            repeats = 10,
+#                            summaryFunction = twoClassSummary,
+#                            classProbs = TRUE)
+# 
+# ldaFit1 = train(trash ~ ., data = training[,5:11], 
+#                  method = "lda", 
+#                  trControl = fitControl,
+#                  metric = "ROC",
+#                  verbose = FALSE)
+# ldaFit1
+# 
+# training$predicted = predict.train(ldaFit1, training)
+# confusionMatrix(data=training$predicted, reference = training$trash)
+# 
+# testing$predicted = predict.train(ldaFit1, testing)
+# confusionMatrix(data=testing$predicted, reference = testing$trash)
+# 
+# ldaFit1$finalModel
+```
+
+```{r}
+# detach("package:MASS", unload=TRUE)
+# joined.subset = joined %>%
+#   select(subjectID, run, volume, volMean, volSD, matches("euclidian.*deriv"), trash, auto, outcount)
+# 
+# ldaOutput = training %>%
+#   bind_rows(testing) %>%
+#   mutate(trash = ifelse(trash == "trash",1,0),
+#          predicted = ifelse(predicted == "trash",1,0)) %>%
+#   mutate(lda = ifelse(predicted == 1 & trash == 1, 2, 
+#                                 ifelse(predicted == 1 & trash == 0, 3, trash)))
+# lda.plot = ldaOutput %>%
+#   select(subjectID, run, volume, volMean, volSD, starts_with("euclidian"), auto, lda) %>%
+#   gather(compare, code, -c(subjectID, run, volume, volMean, volSD, starts_with("euclidian"))) %>% 
+#   mutate(code = as.factor(code)) %>%
+#   gather(measure, value, -c(subjectID, run, volume, compare, code))
+# 
+# nada = lda.plot %>% group_by(subjectID) %>%
 #   do({
 #     plot = ggplot(., aes(volume, value)) + 
 #       geom_point(aes(color = code)) + 
@@ -119,73 +186,6 @@ joined.plot = joined.plot %>% mutate(code = as.factor(code)) %>%
 #     #ggsave(plot, file=paste0(outputDir,'plots/',.$subjectID[[1]],'.png'), width = 12)
 #     data.frame()
 #   })
-```
-
-# predict manually coded data using a linear discriminant classifier
-```{r}
-library(caret)
-data = joined %>%
-  dplyr::select(subjectID, run, volume, auto, volMean, volSD, Diff.mean, Diff.sd, matches("euclidian.*deriv"), trash) %>%
-  mutate(trash = ifelse(trash == 1, "trash", "notTrash")) %>%
-  na.omit()
-
-inTraining = createDataPartition(data$subjectID, p=.75, list=F)
-training = data[inTraining,]
-testing = data[-inTraining,]
-
-fitControl = trainControl(## 10-fold CV
-                           method = "repeatedcv",
-                           number = 10,
-                           ## repeated ten times
-                           repeats = 10,
-                           summaryFunction = twoClassSummary,
-                           classProbs = TRUE)
-
-ldaFit1 = train(trash ~ ., data = training[,5:11], 
-                 method = "lda", 
-                 trControl = fitControl,
-                 metric = "ROC",
-                 verbose = FALSE)
-ldaFit1
-
-training$predicted = predict.train(ldaFit1, training)
-confusionMatrix(data=training$predicted, reference = training$trash)
-
-testing$predicted = predict.train(ldaFit1, testing)
-confusionMatrix(data=testing$predicted, reference = testing$trash)
-
-ldaFit1$finalModel
-```
-
-```{r}
-detach("package:MASS", unload=TRUE)
-joined.subset = joined %>%
-  select(subjectID, run, volume, volMean, volSD, matches("euclidian.*deriv"), trash, auto, outcount)
-
-ldaOutput = training %>%
-  bind_rows(testing) %>%
-  mutate(trash = ifelse(trash == "trash",1,0),
-         predicted = ifelse(predicted == "trash",1,0)) %>%
-  mutate(lda = ifelse(predicted == 1 & trash == 1, 2, 
-                                ifelse(predicted == 1 & trash == 0, 3, trash)))
-lda.plot = ldaOutput %>%
-  select(subjectID, run, volume, volMean, volSD, starts_with("euclidian"), auto, lda) %>%
-  gather(compare, code, -c(subjectID, run, volume, volMean, volSD, starts_with("euclidian"))) %>% 
-  mutate(code = as.factor(code)) %>%
-  gather(measure, value, -c(subjectID, run, volume, compare, code))
-
-nada = lda.plot %>% group_by(subjectID) %>%
-  do({
-    plot = ggplot(., aes(volume, value)) + 
-      geom_point(aes(color = code)) + 
-      geom_line() + 
-      facet_grid(measure + compare ~ run, scales= "free") +
-      scale_colour_discrete(drop = FALSE, labels=c("not trash", "false neg", "hit", "false pos")) + 
-      labs(title = .$subjectID[[1]])
-    print(plot)
-    #ggsave(plot, file=paste0(outputDir,'plots/',.$subjectID[[1]],'.png'), width = 12)
-    data.frame()
-  })
 ```
 
 
