@@ -42,26 +42,26 @@ outcount = read.csv(paste0(outputDir,study,'_outcount.csv')) %>%
 ```{r}
 # filter trash dataframe and join with filteredMotion
 joined = trash %>% 
-  left_join(., manual, by = c("subjectID","run","volume")) %>%
+  left_join(., manual) %>%
   left_join(., outcount, by = c("subjectID","run","volume")) %>%
-  mutate(auto = ifelse(trashDiff == 1 & trash == 1, 2, 
-                                ifelse(trashDiff == 1 & trash == 0, 3, trash)),
+  mutate(auto = ifelse(trash.auto == 1 & trash == 1, 2, 
+                ifelse(trash.auto == 1 & trash == 0, 3, trash)),
          outcount = ifelse(trashOut == 1 & trash == 1, 2,
-                         ifelse(trashOut == 1 & trash == 0, 3, trash)))
+                    ifelse(trashOut == 1 & trash == 0, 3, trash)))
 joined.plot = joined %>%
-  select(subjectID, run, volume, volMean, volSD, starts_with("euclidian"), trashDiff, trashOut, trash, auto, outcount) %>%
-  gather(compare, code, -c(subjectID, run, volume, volMean, volSD, trashDiff, trashOut, trash, starts_with("euclidian")))
+  select(subjectID, run, volume, volMean, volSD, starts_with("euclidian"), trash.auto, trashOut, trash, auto, outcount) %>%
+  gather(compare, code, -c(subjectID, run, volume, volMean, volSD, trash.auto, trashOut, trash, starts_with("euclidian")))
 
 # check false negatives
-falseNeg.auto = joined %>% filter(trashDiff == 0 & trash == 1)
+falseNeg.auto = joined %>% filter(trash.auto == 0 & trash == 1)
 falseNeg.outcount = joined %>% filter(trashOut == 0 & trash == 1)
 
 # check false positives
-falsePos.auto = joined %>% filter(trashDiff == 1 & trash == 0)
+falsePos.auto = joined %>% filter(trash.auto == 1 & trash == 0)
 falsePos.outcount = joined %>% filter(trashOut == 1 & trash == 0)
 
 # check hits
-hits.auto = joined %>% filter(trashDiff == 1 & trash == 1)
+hits.auto = joined %>% filter(trash.auto == 1 & trash == 1)
 hits.outcount = joined %>% filter(trashOut == 1 & trash == 1)
 ```
 
@@ -78,7 +78,7 @@ kable(table,format = "pandoc")
 ## summarize by participants
 ```{r}
 nVol = joined %>% group_by(subjectID) %>% summarize(nVol = length(volume))
-summaryPos = falsePos.auto %>% group_by(subjectID) %>% summarize(falsePos = sum(trashDiff, na.rm=T))
+summaryPos = falsePos.auto %>% group_by(subjectID) %>% summarize(falsePos = sum(trash.auto, na.rm=T))
 summaryNeg = falseNeg.auto %>% group_by(subjectID) %>% summarize(falseNeg = sum(trash, na.rm=T))
 summaryPosNeg = nVol %>%
   full_join(., summaryPos, by = "subjectID") %>% 
@@ -93,7 +93,7 @@ summaryPosNeg = nVol %>%
 ```{r}
 joined %>% group_by(subjectID) %>% 
   summarise(trashManual = sum(trash, na.rm = T), 
-            trashAuto = sum(trashDiff, na.rm = T)) %>%
+            trashAuto = sum(trash.auto, na.rm = T)) %>%
   full_join(., summaryPosNeg, by = "subjectID") %>%
   select(-nVol) %>%
   arrange(trashManual) %>%
@@ -119,6 +119,7 @@ nada = joined.plot %>% group_by(subjectID) %>%
     #ggsave(plot, file=paste0(outputDir,'plots/',.$subjectID[[1]],'.png'), width = 12)
     data.frame()
   })
+
 ```
 
 # predict manually coded data using a linear discriminant classifier
