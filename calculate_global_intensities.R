@@ -27,9 +27,15 @@ osuRepo = 'http://ftp.osuosl.org/pub/cran/'
 if(!require(fslr)){
   install.packages('fslr',repos=osuRepo)
 }
+require(fslr)
 if(!require(tidyverse)){
   install.packages('tidyverse',repos=osuRepo)
 }
+require(tidyverse)
+if(!require(parallel)){
+  install.packages('parallel',repos=osuRepo)
+}
+require(parallel)
 
 #------------------------------------------------------
 # define variables
@@ -38,17 +44,19 @@ if(!require(tidyverse)){
 #------------------------------------------------------
 
 # paths
-subjectDir = "/Volumes/FP/research/dsnlab/Studies/FP/subjects/" #"/Volumes/psych-cog/dsnlab/TDS/archive/subjects_G80/"
-functionalDir = "/ppc/functionals/"
-outputDir = "/Volumes/psych-cog/dsnlab/auto-motion-output/" 
+subjectDir = "/Users/ralph/Documents/tds/fMRI/subjects/" #"/Volumes/FP/research/dsnlab/Studies/FP/subjects/" #"/Volumes/psych-cog/dsnlab/TDS/archive/subjects_G80/"
+functionalDir = "" #"/ppc/functionals/"
+outputDir = "/Users/ralph/Documents/tds/fMRI/analysis/fx/motion/auto-motion-output/" #"/Volumes/psych-cog/dsnlab/auto-motion-output/" 
 
 # variables
-study = "FP"
-subPattern = "^FP[0-9]{3}"
-prefix = "o" 
-runPattern = "^run*" 
+study = "tds" #"FP"
+subPattern = "^[0-9]{3}" #"^FP[0-9]{3}"
+prefix = "ru" #"o" 
+runPattern = "(cyb|stop|vid)[1-8]" #"^run*" 
 threshold = 5000
 final_output_csv = file.path(outputDir,paste0(study,'_globalIntensities.csv'))
+parallelize = TRUE
+leave_n_free_cores = 1
 
 #------------------------------------------------------
 # calculate mean intensity for each functional image
@@ -57,46 +65,73 @@ final_output_csv = file.path(outputDir,paste0(study,'_globalIntensities.csv'))
 # get subjects list from subject directory
 subjects = list.files(subjectDir, pattern = subPattern)
 
-for (sub in subjects){
-  # get runs from functional directory
+globint_for_sub <- function(sub, subjectDir, functionalDir, runPattern, prefix, threshold){
   runs = list.files(paste0(subjectDir,sub,functionalDir), pattern=runPattern)
   
   for (run in runs){
     # assign pattern based on prefix and run
-    # filePattern = paste0('^',prefix,'.*',run,'.nii.*') # MVPA file pattern
     filePattern = paste0('^',prefix,'.*',run,'_*([0-9]{4}).nii.*')
     
     # generate file path
-    path = paste0(subjectDir,sub,functionalDir,run)
+    path = paste0(subjectDir,sub,'/',functionalDir,run)
     file_list = list.files(path, pattern = filePattern)
     
     for (file in file_list){
       # if the merged dataset doesn't exist, create it
       if (!exists("dataset")){
-        img = readnii(paste0(path,"/",file))
-        dataset = data.frame(subjectID = sub,
-                             file = file,
-                             run = run,
-                             volMean = mean(img[img > threshold], na.rm=TRUE),
-                             volSD = sd(img[img > threshold], na.rm=TRUE)) %>%
-          extract(file, c("volume"), filePattern)
+        img = neurobase::readnii(paste0(path,"/",file)) #using `::` allows us to not load the package when parallelized
+        dataset = tidyr::extract(data.frame(subjectID = sub,
+                                            file = file,
+                                            run = run,
+                                            volMean = mean(img[img > threshold], na.rm=TRUE),
+                                            volSD = sd(img[img > threshold], na.rm=TRUE)),
+                                 file, c("volume"), filePattern)
       }
       
       # if the merged dataset does exist, append to it
       else {
-        img = readnii(paste0(path,"/",file))
-        temp_dataset = data.frame(subjectID = sub,
-                                  file = file,
-                                  run = run,
-                                  volMean = mean(img[img > threshold], na.rm=TRUE),
-                                  volSD = sd(img[img > threshold], na.rm=TRUE)) %>%
-          extract(file, c("volume"), filePattern)
+        img = neurobase::readnii(paste0(path,"/",file))
+        temp_dataset = tidyr::extract(data.frame(subjectID = sub,
+                                                 file = file,
+                                                 run = run,
+                                                 volMean = mean(img[img > threshold], na.rm=TRUE),
+                                                 volSD = sd(img[img > threshold], na.rm=TRUE)),
+                                      file, c("volume"), filePattern)
         dataset <- rbind(dataset, temp_dataset)
         rm(temp_dataset)
       }
     }
   }
-} 
+  return(dataset)
+}
+
+if(parallelize){
+  time_it_took <- system.time({
+    parallelCluster <- parallel::makeCluster(parallel::detectCores() - leave_n_free_cores)
+    print(parallelCluster)
+    datasets <- parallel::parLapply(parallelCluster, 
+                                    subjects, 
+                                    globint_for_sub, subjectDir, functionalDir, runPattern, prefix, threshold)
+    outdata <- bind_rows(datasets)
+    # Shutdown cluster neatly
+    if(!is.null(parallelCluster)) {
+      parallel::stopCluster(parallelCluster)
+      parallelCluster <- c()
+    }
+  })
+  print(paste0("For ", length(subjects), " participant IDs, the system logged this much time: \n"))
+  print(time_it_took)
+} else {
+  if(parallelize){
+    time_it_took <- system.time({
+      datasets <- lapply(subjects, 
+                         globint_for_sub, subjectDir, functionalDir, runPattern, prefix, threshold)
+      outdata <- bind_rows(datasets)
+    })
+    print(paste0("For ", length(subjects), " participant IDs, the system logged this much time: \n"))
+    print(time_it_took)
+  }
+}
 
 #------------------------------------------------------
 # write csv
