@@ -54,7 +54,7 @@ subPattern = "^[0-9]{3}" #"^FP[0-9]{3}"
 prefix = "ru" #"o" 
 runPattern = "(cyb|stop|vid)[1-8]" #"^run*" 
 threshold = 5000
-final_output_csv = file.path(outputDir,paste0(study,'_globalIntensities.csv'))
+final_output_csv = file.path(outputDir,paste0(study,'_globalIntensities_test_par.csv'))
 parallelize = TRUE
 leave_n_free_cores = 1
 
@@ -114,13 +114,12 @@ if(parallelize){
                                     globint_for_sub, subjectDir, functionalDir, runPattern, prefix, threshold)
     outdata <- bind_rows(datasets)
     # Shutdown cluster neatly
+    cat("Shutting down cluster...")
     if(!is.null(parallelCluster)) {
       parallel::stopCluster(parallelCluster)
       parallelCluster <- c()
     }
   })
-  print(paste0("For ", length(subjects), " participant IDs, the system logged this much time: \n"))
-  print(time_it_took)
 } else {
   if(parallelize){
     time_it_took <- system.time({
@@ -128,10 +127,11 @@ if(parallelize){
                          globint_for_sub, subjectDir, functionalDir, runPattern, prefix, threshold)
       outdata <- bind_rows(datasets)
     })
-    print(paste0("For ", length(subjects), " participant IDs, the system logged this much time: \n"))
-    print(time_it_took)
   }
 }
+cat(paste0("For ", length(subjects), " participant IDs, the system logged this much time: \n"))
+print(time_it_took)
+
 
 #------------------------------------------------------
 # write csv
