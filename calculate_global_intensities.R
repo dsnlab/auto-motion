@@ -24,6 +24,9 @@
 #------------------------------------------------------
 osuRepo = 'http://ftp.osuosl.org/pub/cran/'
 
+if(!require(devtools)){
+  install.packages('devtools',repos=osuRepo)
+}
 if(!require(RNifti)){
   devtools::install_github("jonclayden/RNifti")
 }
