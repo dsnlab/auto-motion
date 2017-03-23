@@ -48,6 +48,7 @@ subPattern = "^FP[0-9]{3}"
 prefix = "o" 
 runPattern = "^run*" 
 threshold = 5000
+final_output_csv = file.path(outputDir,paste0(study,'_globalIntensities.csv'))
 
 #------------------------------------------------------
 # calculate mean intensity for each functional image
@@ -63,7 +64,7 @@ for (sub in subjects){
   for (run in runs){
     # assign pattern based on prefix and run
     # filePattern = paste0('^',prefix,'.*',run,'.nii.*') # MVPA file pattern
-    filePattern = paste0('^',prefix,'.*',run,'_([0-9]{4}).nii.*')
+    filePattern = paste0('^',prefix,'.*',run,'_*([0-9]{4}).nii.*')
     
     # generate file path
     path = paste0(subjectDir,sub,functionalDir,run)
@@ -100,4 +101,7 @@ for (sub in subjects){
 #------------------------------------------------------
 # write csv
 #------------------------------------------------------
-write.csv(dataset, paste0(outputDir,study,'_globalIntensities.csv'), row.names = FALSE)
+if (!dir.exists(dirname(final_output_csv))){
+  dir.create(dirname(final_output_csv))
+}
+write.csv(dataset, final_output_csv, row.names = FALSE)
