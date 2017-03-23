@@ -1,6 +1,5 @@
 # author: dani cosme
 # email: dcosme@uoregon.edu
-# version: 0.1
 # date: 2017-03-04
 
 # This script loads globalIntensity file, codes volues as trash, and 
@@ -11,7 +10,7 @@
 # Inputs:
 # * outputDir = path where study_globalIntensities.csv will be written
 # * rpDir = path to original rp_txt file directory 
-# * rpOutpuDir = path to output directory to write new rp_txt files; this directory must exist
+# * rpOutputDir = path to output directory to write new rp_txt files; this directory must exist
 # * plotDir = path to output directory to write plots; this directory must exist.
 # * study = study name
 # * rpPattern = regular expression for rp_txt files
@@ -39,7 +38,7 @@ if(!require(tidyverse)){
 # paths
 outputDir = '/Volumes/psych-cog/dsnlab/auto-motion-output/'
 rpDir = '/Volumes/FP/research/dsnlab/Studies/FP/motion/rp_txt/'
-rpOutpuDir = '/Volumes/FP/research/dsnlab/Studies/FP/motion/rp_auto_txt/'
+rpOutputDir = '/Volumes/FP/research/dsnlab/Studies/FP/motion/rp_auto_txt/'
 plotDir = '/Volumes/psych-cog/dsnlab/auto-motion-output/plots/FP/'
 
 # variables
@@ -61,28 +60,31 @@ intensities = read.csv(paste0(outputDir,study,'_globalIntensities.csv'))
 # create trash regressors
 #------------------------------------------------------
 trash = intensities %>% group_by(subjectID, run) %>%
-        mutate(Diff.mean = volMean - lag(volMean),
-               Diff.sd = volSD - lag(volSD)) %>%
-        ungroup %>%
-        mutate(meanDiff.mean = mean(Diff.mean, na.rm=TRUE),
-               sdDiff.mean = sd(Diff.mean, na.rm=TRUE),
-               thresholdDiff.mean = sdDiff.mean*2, 
-
-               meanDiff.sd = mean(Diff.sd, na.rm=TRUE),
-               sdDiff.sd = sd(Diff.sd, na.rm=TRUE),
-               thresholdDiff.sd = sdDiff.sd*4, 
-               trashDiff = ifelse(Diff.mean > (meanDiff.mean + thresholdDiff.mean) | Diff.mean < (meanDiff.mean - thresholdDiff.mean), 1, 0),
-               trashDiff = ifelse(Diff.sd > (meanDiff.sd + thresholdDiff.sd) | Diff.sd < (meanDiff.sd - thresholdDiff.sd), 1, trashDiff),
-               behind = lead(trashDiff), 
-               ahead = lag(trashDiff), 
-               # recode as trash if volume behind and in front are both marked as trash
-               trashDiff = ifelse(trashDiff == 0 & behind == 1 & ahead == 1, 1, trashDiff),
-               # reduce false negatives before trash volume
-               trashDiff = ifelse((trashDiff == 0 & lead(trashDiff == 1)) & (Diff.mean > (meanDiff.mean + .75*thresholdDiff.mean) | Diff.mean < (meanDiff.mean - .75*thresholdDiff.mean)), 1, trashDiff)) %>%
-               #aheadVal = lead(Diff.mean)) %>%
-               # reduce false positives on last volume in motion sequence
-               #trashDiff = ifelse(trashDiff == 1 & behind == 1 & ahead == 0 & aheadVal < (meanDiff + sdDiff) & aheadVal > (meanDiff - sdDiff), 0, trashDiff)) %>%
-        select(subjectID, run, volume, Diff.mean, Diff.sd, volMean, volSD, trashDiff)
+  mutate(Diff.mean = volMean - lag(volMean),
+         Diff.sd = volSD - lag(volSD)) %>%
+  ungroup %>%
+  mutate(meanDiff.mean = mean(Diff.mean, na.rm=TRUE),
+         sdDiff.mean = sd(Diff.mean, na.rm=TRUE),
+         thresholdDiff.mean = sdDiff.mean*2, 
+         meanDiff.sd = mean(Diff.sd, na.rm=TRUE),
+         sdDiff.sd = sd(Diff.sd, na.rm=TRUE),
+         thresholdDiff.sd = sdDiff.sd*3, 
+         
+         # code volumes above mean and SD thresholds as trash
+         trashDiff = ifelse(Diff.mean > (meanDiff.mean + thresholdDiff.mean) | Diff.mean < (meanDiff.mean - thresholdDiff.mean), 1, 0),
+         trashDiff = ifelse(Diff.sd > (meanDiff.sd + thresholdDiff.sd) | Diff.sd < (meanDiff.sd - thresholdDiff.sd), 1, trashDiff),
+         
+         # recode as trash if volume behind and in front are both marked as trash
+         trashDiff = ifelse(trashDiff == 0 & lag(trashDiff) == 1 & lead(trashDiff) == 1, 1, trashDiff),
+         behind = lead(trashDiff), 
+         ahead = lag(trashDiff), 
+         
+         # reduce false negatives before trash volume
+         trashDiff = ifelse((trashDiff == 0 & lead(trashDiff == 1)) & (Diff.mean > (meanDiff.mean + .5*thresholdDiff.mean) | Diff.mean < (meanDiff.mean - .5*thresholdDiff.mean)), 1, trashDiff),
+         
+         # reduce false positives on last volume in motion sequence
+         trashDiff = ifelse((trashDiff == 1 & lead(trashDiff == 0)) & (Diff.mean < (meanDiff.mean + 1.5*thresholdDiff.mean) & Diff.mean > (meanDiff.mean - 1.5*thresholdDiff.mean)), 0, trashDiff)) %>%
+  select(subjectID, run, volume, Diff.mean, Diff.sd, volMean, volSD, trashDiff)
 
 #------------------------------------------------------
 # write csv
@@ -144,7 +146,7 @@ if (writeRP){
     group_by(subjectID, run) %>% 
     do({
       fname=paste(
-        rpOutpuDir,
+        rpOutputDir,
         'rp_',.$subjectID[[1]],'_',.$run[[1]],'.txt',
         sep='')
       write.table(
