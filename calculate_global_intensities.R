@@ -24,10 +24,10 @@
 #------------------------------------------------------
 osuRepo = 'http://ftp.osuosl.org/pub/cran/'
 
-if(!require(fslr)){
-  install.packages('fslr',repos=osuRepo)
+if(!require(RNifti)){
+  install.packages('RNifti',repos=osuRepo)
 }
-require(fslr)
+require(RNifti)
 if(!require(tidyverse)){
   install.packages('tidyverse',repos=osuRepo)
 }
@@ -73,13 +73,13 @@ globint_for_sub <- function(sub, subjectDir, functionalDir, runPattern, prefix, 
     filePattern = paste0('^',prefix,'.*',run,'_*([0-9]{4}).nii.*')
     
     # generate file path
-    path = paste0(subjectDir,sub,'/',functionalDir,run)
+    path = file.path(subjectDir,sub,'/',functionalDir,run)
     file_list = list.files(path, pattern = filePattern)
     
     for (file in file_list){
       # if the merged dataset doesn't exist, create it
       if (!exists("dataset")){
-        img = neurobase::readnii(paste0(path,"/",file)) #using `::` allows us to not load the package when parallelized
+        img = RNifti::readNifti(paste0(path,"/",file)) #using `::` allows us to not load the package when parallelized
         dataset = tidyr::extract(data.frame(subjectID = sub,
                                             file = file,
                                             run = run,
@@ -90,14 +90,14 @@ globint_for_sub <- function(sub, subjectDir, functionalDir, runPattern, prefix, 
       
       # if the merged dataset does exist, append to it
       else {
-        img = neurobase::readnii(paste0(path,"/",file))
+        img = RNifti::readNifti(paste0(path,"/",file))
         temp_dataset = tidyr::extract(data.frame(subjectID = sub,
                                                  file = file,
                                                  run = run,
                                                  volMean = mean(img[img > threshold], na.rm=TRUE),
                                                  volSD = sd(img[img > threshold], na.rm=TRUE)),
                                       file, c("volume"), filePattern)
-        dataset <- rbind(dataset, temp_dataset)
+        dataset <- dplyr::bind_rows(dataset, temp_dataset)
         rm(temp_dataset)
       }
     }
