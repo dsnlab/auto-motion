@@ -15,7 +15,10 @@
 # * prefix = SPM prefix appended to functional images; use "" to ignore
 # * runPattern = regular expression for run names; use "" to specify all directories in $functionalDir
 # * threshold = voxel intensity value used to truncate the distribution
-# 
+# * final_output_csv = path and file name for 'study_globalIntensities.csv'
+# * parallelize = use TRUE to parallelize, FALSE if not
+# * leave_n_free_cores = number of cores to leave free
+#
 # Outputs:
 # * study_globalIntensities.csv = CSV file with global intensity value for each image
 
@@ -57,7 +60,7 @@ subPattern = "^[0-9]{3}" #"^FP[0-9]{3}"
 prefix = "ru" #"o" 
 runPattern = "(cyb|stop|vid)[1-8]" #"^run*" 
 threshold = 5000
-final_output_csv = file.path(outputDir,paste0(study,'_globalIntensities_test_par.csv'))
+final_output_csv = file.path(outputDir,paste0(study,'_globalIntensities.csv'))
 parallelize = TRUE
 leave_n_free_cores = 1
 
