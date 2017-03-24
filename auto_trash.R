@@ -37,6 +37,8 @@ if(!require(tidyverse)){
 
 #------------------------------------------------------
 # define variables
+# these variables are all you should need to change
+# to run the script
 #------------------------------------------------------
 # paths
 rpDir = '/Volumes/FP/research/dsnlab/Studies/FP/motion/rp_txt/'
