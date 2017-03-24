@@ -98,33 +98,31 @@ trash = intensities %>%
   left_join(., dataset, by = c("subjectID", "run", "volume")) %>%
   group_by(subjectID, run) %>%
   mutate(Diff.mean = volMean - lag(volMean),
-         Diff.sd = volSD - lag(volSD),
-         Diff.intensity = volMean - mean(volMean)) %>%
+         Diff.sd = volSD - lag(volSD)) %>%
   ungroup %>%
   mutate(meanDiff.mean = mean(Diff.mean, na.rm=TRUE),
          sdDiff.mean = sd(Diff.mean, na.rm=TRUE),
          meanDiff.sd = mean(Diff.sd, na.rm=TRUE),
          sdDiff.sd = sd(Diff.sd, na.rm=TRUE),
-         # meanDiff.intensity = mean(Diff.intensity, na.rm=TRUE),
-         # sdDiff.intensity = sd(Diff.intensity, na.rm=TRUE),
 
          # code volumes above mean thresholds as trash
          trash.auto = ifelse(Diff.mean > (meanDiff.mean + 3*sdDiff.mean) | Diff.mean < (meanDiff.mean - 1.5*sdDiff.mean), 1, 0),
          trash.auto = ifelse(Diff.sd > (meanDiff.sd + 3*sdDiff.sd) | Diff.sd < (meanDiff.sd - 3*sdDiff.sd), 1, trash.auto),
-         # trash.auto = ifelse(Diff.intensity > (meanDiff.intensity + 2*sdDiff.intensity) | Diff.intensity < (meanDiff.intensity - 2*sdDiff.intensity), 1, trash.auto),
-         
+
          # code volumes with more than +/- .3mm translation in Euclidian distance
          trash.auto = ifelse(euclidian_trans_deriv > .3 | euclidian_trans_deriv < -.3, 1, trash.auto),
 
          # code volumes with more than +/- .3mm translation in Euclidian distance
          trash.auto = ifelse(euclidian_rot_deriv > .3 | euclidian_rot_deriv < -.3, 1, trash.auto),
          
+         # code first volume as trash if second volume is trash
+         trash.auto = ifelse(volume == 1 & lead(trash.auto) == 1, 1, trash.auto),
+         
          # recode as trash if volume behind and in front are both marked as trash
          trash.auto = ifelse(trash.auto == 0 & lag(trash.auto) == 1 & lead(trash.auto) == 1, 1, trash.auto),
          
          # reduce false positives on last volume in motion sequence
          trash.auto = ifelse((trash.auto == 1 & lag(trash.auto == 1) & lead(trash.auto == 0)) & (Diff.mean < (meanDiff.mean + 1.5*sdDiff.mean) & Diff.mean > (meanDiff.mean - 3*sdDiff.mean)), 0, trash.auto),
-         #trash.auto = ifelse((trash.auto == 1 & lead(trash.auto == 0)) & (euclidian_trans_deriv < .1 & euclidian_trans_deriv > -.1), 0, trash.auto),
 
          # reduce false negatives before trash volume
          trash.auto = ifelse((trash.auto == 0 & lead(trash.auto == 1)) & (Diff.mean > (meanDiff.mean + sdDiff.mean) | Diff.mean < (meanDiff.mean - sdDiff.mean)), 1, trash.auto)) %>%
