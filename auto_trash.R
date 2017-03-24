@@ -3,12 +3,12 @@
 # date: 2017-03-04
 
 # This script loads globalIntensity file, codes volues as trash, and 
-# returns 'study_autoTrash.csv'. It will also write new rp_txt files 
+# returns 'study_autoTrash.csv' as well as summaries by subject, subject and run,
+# and trash volumes only. It will also write new rp_txt files 
 # if writeRP = TRUE and plots if writePlots = TRUE.
 
-# 
 # Inputs:
-# * outputDir = path where study_globalIntensities.csv will be written
+# * outputDir = path where study_globalIntensities.csv and summary csv files will be written
 # * rpDir = path to original rp_txt file directory 
 # * rpOutputDir = path to output directory to write new rp_txt files; this directory must exist
 # * plotDir = path to output directory to write plots; this directory must exist.
@@ -20,8 +20,11 @@
 # 
 # Outputs:
 # * study_globalIntensities.csv = CSV file with global intensity value for each image
+# * study_summaryRun.csv = CSV file with summary by subject and run
+# * study_summarySubject.csv = CSV file with summary by subject only
+# * study_trashVols.csv = CSV file with trash volumes only
 # * if writeRP = TRUE, new rp_txt files will be written
-# * if writePlots = TRUE, plots for each subjects will be written to outputDir
+# * if writePlots = TRUE, plots for each subjects will be written to plotDir
 
 #------------------------------------------------------
 # load packages
@@ -36,15 +39,15 @@ if(!require(tidyverse)){
 # define variables
 #------------------------------------------------------
 # paths
-outputDir = '/Volumes/psych-cog/dsnlab/auto-motion-output/'
 rpDir = '/Volumes/FP/research/dsnlab/Studies/FP/motion/rp_txt/'
+outputDir = '/Volumes/psych-cog/dsnlab/auto-motion-output/'
 rpOutputDir = '/Volumes/FP/research/dsnlab/Studies/FP/motion/rp_auto_txt/'
 plotDir = '/Volumes/psych-cog/dsnlab/auto-motion-output/plots/FP/'
 
 # variables
 study = "FP"
 rpPattern = "^rp_(FP[0-9]{3})_(.*).txt"
-rpCols = c("euclidian_trans","euclidian_rot","euclidian_trans_deriv","euclidian_rot_deriv","trash")
+rpCols = c("euclidian_trans","euclidian_rot","euclidian_trans_deriv","euclidian_rot_deriv","trash.rp")
 
 # write new rp_txt and plots files?
 writeRP = TRUE
@@ -66,7 +69,7 @@ for (file in file_list){
   # if the merged dataset doesn't exist, create it
   if (!exists("dataset")){
     temp = read.table(paste0(rpDir,file))
-    colnames(temp) = c("euclidian_trans","euclidian_rot","euclidian_trans_deriv","euclidian_rot_deriv","trash")
+    colnames(temp) = rpCols
     dataset = data.frame(temp, file = rep(file,count(temp))) %>% 
       mutate(volume = row_number()) %>%
       extract(file,c("subjectID","run"), rpPattern)
@@ -75,7 +78,7 @@ for (file in file_list){
   # if the merged dataset does exist, append to it
   else {
     temp_dataset = read.table(paste0(rpDir,file))
-    colnames(temp_dataset) = c("euclidian_trans","euclidian_rot","euclidian_trans_deriv","euclidian_rot_deriv","trash")
+    colnames(temp_dataset) = rpCols
     temp_dataset = data.frame(temp_dataset, file = rep(file,count(temp_dataset))) %>% 
       mutate(volume = row_number()) %>%
       extract(file,c("subjectID","run"), rpPattern)
@@ -123,20 +126,42 @@ trash = intensities %>%
 
          # reduce false negatives before trash volume
          trash.auto = ifelse((trash.auto == 0 & lead(trash.auto == 1)) & (Diff.mean > (meanDiff.mean + sdDiff.mean) | Diff.mean < (meanDiff.mean - sdDiff.mean)), 1, trash.auto)) %>%
-  select(subjectID, run, volume, Diff.mean, Diff.sd, volMean, volSD, starts_with("euclidian"), trash.auto)
+  mutate(trash.combined = ifelse(trash.rp == 1 | trash.auto == 1, 1, 0)) %>%
+  select(subjectID, run, volume, Diff.mean, Diff.sd, volMean, volSD, starts_with("euclidian"), trash.rp, trash.auto, trash.combined)
 
 #------------------------------------------------------
-# write csv
+# write auto trash csv
 #------------------------------------------------------
 write.csv(trash, paste0(outputDir,study,'_autoTrash.csv'), row.names = FALSE)
+
+#------------------------------------------------------
+# summarize data and output csv files
+#------------------------------------------------------
+summary.run = trash %>% 
+  group_by(subjectID, run) %>% 
+  summarise(nVols = sum(trash.combined, na.rm = T),
+            percent = round((sum(trash.combined, na.rm = T) / n())* 100,1))
+
+summary.sub = trash %>% 
+  group_by(subjectID) %>% 
+  summarise(nVols = sum(trash.combined, na.rm = T),
+            percent = round((sum(trash.combined, na.rm = T) / n())* 100,1))
+
+summary.trash = trash %>%
+  filter(trash.combined == 1) %>%
+  select(subjectID, run, volume, trash.combined)
+
+write.csv(summary.run, paste0(outputDir,study,'_summaryRun.csv'), row.names = FALSE)
+write.csv(summary.sub, paste0(outputDir,study,'_summarySubject.csv'), row.names = FALSE)
+write.csv(summary.trash, paste0(outputDir,study,'_trashVols.csv'), row.names = FALSE)
 
 #------------------------------------------------------
 # write rp_txt files
 #------------------------------------------------------
 if (writeRP){
 rp = trash %>%
-  select(subjectID, run, volume, starts_with("euclidian"), trash.auto) %>%
-  mutate(trash.auto = ifelse(is.na(trash.auto), 0, trash.auto))
+  select(subjectID, run, volume, starts_with("euclidian"), trash.combined) %>%
+  mutate(trash.combined = ifelse(is.na(trash.combined), 0, trash.combined))
   
 rp_files_written = rp %>% 
   arrange(subjectID, run, volume) %>% 
@@ -162,24 +187,22 @@ rp_files_written = rp %>%
 #------------------------------------------------------
 if (writePlots){
   # visualize for each subject subject
-  trash.plot = dataset %>%
-    mutate(volume = as.integer(volume)) %>%
-    left_join(., trash, by = c("subjectID", "run", "volume")) %>%
-    mutate(code = ifelse(trash.auto == 1 & trash == 1, 2, 
-                         ifelse(trash.auto == 1 & trash == 0, 3, trash))) %>%
-    select(-starts_with("euclidian"), -starts_with("Diff"), -starts_with("trash")) %>%
+  trash.plot = trash %>%
+    mutate(trash.combined = ifelse(is.na(trash.combined), 0, trash.combined),
+          code = ifelse(trash.combined == 1, "trash", "not trash")) %>%
+    select(-starts_with("Diff"), -starts_with("trash")) %>%
     gather(measure, value, -c(subjectID, run, volume, code))
   
   nada = trash.plot %>% group_by(subjectID) %>%
     do({
       plot = ggplot(., aes(volume, value)) + 
-        geom_point(aes(color = as.factor(code))) + 
+        geom_point(aes(color = code)) + 
         geom_line() + 
         facet_grid(measure ~ run, scales= "free") +
-        scale_colour_discrete(drop = FALSE, labels=c("not trash", "motion script only", "motion + auto", "auto only")) + 
+        scale_colour_discrete(drop = FALSE) + 
         labs(title = .$subjectID[[1]])
       print(plot)
-      ggsave(plot, file=paste0(plotDir,.$subjectID[[1]],'.png'), width = 12)
+      ggsave(plot, file=paste0(plotDir,.$subjectID[[1]],'.pdf'), height = 10, width = 12)
       data.frame()
     })
 }
