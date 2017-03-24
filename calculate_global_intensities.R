@@ -107,10 +107,10 @@ globint_for_sub <- function(sub, subjectDir, functionalDir, runPattern, prefix, 
   }
   if (!exists("dataset")){
     dataset = data.frame(subjectID = sub,
-                         file = NA,
                          run = NA,
                          volMean = NA,
-                         volSD = NA)
+                         volSD = NA,
+                         volume = NA)
   }
   return(dataset)
 }
@@ -147,4 +147,4 @@ print(time_it_took)
 if (!dir.exists(dirname(final_output_csv))){
   dir.create(dirname(final_output_csv))
 }
-write.csv(dataset, final_output_csv, row.names = FALSE)
+write.csv(outdata, final_output_csv, row.names = FALSE)
