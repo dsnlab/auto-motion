@@ -105,6 +105,13 @@ globint_for_sub <- function(sub, subjectDir, functionalDir, runPattern, prefix, 
       }
     }
   }
+  if (!exists("dataset")){
+    dataset = data.frame(subjectID = sub,
+                         file = NA,
+                         run = NA,
+                         volMean = NA,
+                         volSD = NA)
+  }
   return(dataset)
 }
 
@@ -124,13 +131,11 @@ if(parallelize){
     }
   })
 } else {
-  if(parallelize){
-    time_it_took <- system.time({
-      datasets <- lapply(subjects, 
-                         globint_for_sub, subjectDir, functionalDir, runPattern, prefix, threshold)
-      outdata <- bind_rows(datasets)
-    })
-  }
+  time_it_took <- system.time({
+    datasets <- lapply(subjects, 
+                       globint_for_sub, subjectDir, functionalDir, runPattern, prefix, threshold)
+    outdata <- bind_rows(datasets)
+  })
 }
 cat(paste0("For ", length(subjects), " participant IDs, the system logged this much time: \n"))
 print(time_it_took)
