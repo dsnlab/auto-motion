@@ -104,28 +104,26 @@ trash = intensities %>%
          sdDiff.mean = sd(Diff.mean, na.rm=TRUE),
          meanDiff.sd = mean(Diff.sd, na.rm=TRUE),
          sdDiff.sd = sd(Diff.sd, na.rm=TRUE),
-
+         
          # code volumes above mean thresholds as trash
          trash.auto = ifelse(Diff.mean > (meanDiff.mean + 3*sdDiff.mean) | Diff.mean < (meanDiff.mean - 1.5*sdDiff.mean), 1, 0),
          trash.auto = ifelse(Diff.sd > (meanDiff.sd + 3*sdDiff.sd) | Diff.sd < (meanDiff.sd - 3*sdDiff.sd), 1, trash.auto),
-
+         
          # code volumes with more than +/- .3mm translation in Euclidian distance
          trash.auto = ifelse(euclidian_trans_deriv > .3 | euclidian_trans_deriv < -.3, 1, trash.auto),
-
          # code volumes with more than +/- .3mm translation in Euclidian distance
          trash.auto = ifelse(euclidian_rot_deriv > .3 | euclidian_rot_deriv < -.3, 1, trash.auto),
-         
-         # code first volume as trash if second volume is trash
-         trash.auto = ifelse(volume == 1 & lead(trash.auto) == 1, 1, trash.auto),
          
          # recode as trash if volume behind and in front are both marked as trash
          trash.auto = ifelse(trash.auto == 0 & lag(trash.auto) == 1 & lead(trash.auto) == 1, 1, trash.auto),
          
          # reduce false positives on last volume in motion sequence
-         trash.auto = ifelse((trash.auto == 1 & lag(trash.auto == 1) & lead(trash.auto == 0)) & (Diff.mean < (meanDiff.mean + 1.5*sdDiff.mean) & Diff.mean > (meanDiff.mean - 3*sdDiff.mean)), 0, trash.auto),
-
+         trash.auto = ifelse((trash.auto == 1 & lag(trash.auto == 1) & lead(trash.auto == 0)) & lag(!is.na(Diff.mean)) & (Diff.mean < (meanDiff.mean + 1.5*sdDiff.mean) & Diff.mean > (meanDiff.mean - 3*sdDiff.mean)), 0, trash.auto),
          # reduce false negatives before trash volume
-         trash.auto = ifelse((trash.auto == 0 & lead(trash.auto == 1)) & (Diff.mean > (meanDiff.mean + sdDiff.mean) | Diff.mean < (meanDiff.mean - sdDiff.mean)), 1, trash.auto)) %>%
+         trash.auto = ifelse((trash.auto == 0 & lead(trash.auto == 1)) & (Diff.mean > (meanDiff.mean + sdDiff.mean) | Diff.mean < (meanDiff.mean - sdDiff.mean)), 1, trash.auto),
+         
+         # code first volume as trash if second volume is trash
+         trash.auto = ifelse(volume == 1 & lead(trash.auto) == 1, 1, trash.auto)) %>%
   mutate(trash.combined = ifelse(trash.rp == 1 | trash.auto == 1, 1, 0)) %>%
   select(subjectID, run, volume, Diff.mean, Diff.sd, volMean, volSD, starts_with("euclidian"), trash.rp, trash.auto, trash.combined)
 
