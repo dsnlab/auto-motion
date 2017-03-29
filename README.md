@@ -13,3 +13,6 @@ This script integrates global intensity values and Euclidian distance measures t
 
 **Example plot**
 ![plot example](https://github.com/brainhack-eugene/auto-motion/blob/master/plot_example.png)
+
+**Striping Detection Example Plot**
+![stripe plot](https://raw.githubusercontent.com/brainhack-eugene/auto-motion/strip_detect/example_stripe_detect.png)
