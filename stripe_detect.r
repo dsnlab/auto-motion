@@ -3,9 +3,8 @@ file="/data/jflournoy/FP/FP034/run1/run1.nii"
 img = RNifti::readNifti(file, internal = FALSE)
 #temporary
 
-require(pracma)
-require(bspec)
 
+#Functions for doing the work -- these would be packegized
 quickscale <- function(timeseries){
   vmin <- min(timeseries)
   vmax <- max(timeseries)
@@ -28,9 +27,9 @@ welchPSD_from_slice <- function(slice){
   require(bspec)
   slice.ts <- ts(t(slice))
   wl <- welchPSD(slice.ts, seglength = dim(slice.ts)[1]-1, two.sided = TRUE, windowfun = hammingwindow)
-  slice.power <- as.data.frame(t(wl$power))
-  names(slice.power) <- wl$frequency
-  return(slice.power)
+  powerDF <- data.frame(power = wl$power,
+                        freq = wl$freq)
+  return(powerDF)
 }
 
 get_power_density_from_slice <- function(scaled_volume, coronal_index = 50, usebox = T, boxthreshold=.2){
@@ -43,20 +42,53 @@ get_power_density_from_slice <- function(scaled_volume, coronal_index = 50, useb
   return(power_density)
 }
 
+#do the work
+library(tidyverse)
+
+#user is responsible for scaling the image so values range 0-1
+#luckily there is a function for that
 scaled_img <- quickscale(img)
 image(scaled_img[,50,,1])
 
-img.power <- get_power_density_from_slice(scaled_img[,,,9], coronal_index = 50)
+#test the power getting function to see what it returns
+(img.power <- get_power_density_from_slice(scaled_img[,,,9], coronal_index = 50))
 
-plot(names(img.power), img.power, log='y', type = 'l')
+#I know that slice 9 is striped, so let's see what the power density looks like
+plot(img.power$freq,img.power$power, log='y', type = 'l')
 
-power_across_t <- lapply(as.list(1:dim(scaled_img)[4]), function(t) {
-  power_at_t <- get_power_density_from_slice(scaled_img[,,,t],
+#now do it for every t in scaled_image using lapply
+power_across_t <- lapply(as.list(1:dim(scaled_img)[4]), #create a list of t values to loop through
+                         function(t) { #for each t, get power df and add the t marker
+                           power_at_t <- get_power_density_from_slice(scaled_img[,,,t],
                                              coronal_index = 50)
-  return(power_at_t)
-  })
+                           power_at_t$t <- t
+                           return(power_at_t)
+                           })
 
-library(tidyverse)
+#bind the dfs in the list into a single df
 adf <- bind_rows(power_across_t)
+head(adf)
 
-plot(1:dim(adf)[1], adf[,30], type = 'l')
+#if you inspect the data frame, it doesn't return the same list of frequencies every time. so I want to
+#group them into octiles to compute average power within each
+freq_tiles <- quantile(unique(adf$freq), seq(0, 1, .125))
+adf$tile <- findInterval(adf$freq, freq_tiles)
+
+#summarize and plot
+#let's ignore the lower frequencies because they don't show motion
+adf %>% 
+  group_by(t, tile) %>%
+  summarize(freqtile_power = mean(power)) %>%
+  filter(tile > 5) %>%
+  mutate(red_zone = freqtile_power > .0015,
+         label = ifelse(red_zone, t, '')) %>%
+  ggplot(aes(x = t, y = freqtile_power)) +
+  geom_line(aes(group = tile, alpha = tile), size = .25) +
+  geom_point(aes(group = tile, alpha = tile, color = red_zone, size = red_zone)) +
+  geom_text(aes(label = label), size = 3, position = position_nudge(x = 2, y = .000075)) + 
+  # geom_segment(aes(xend = t, group = tile, alpha = tile), yend = 0) +
+  # coord_trans(y = 'log') +
+  scale_x_continuous(breaks = c(1, seq(5, max(adf$t), 5)), minor_breaks = 1:max(adf$t)) + 
+  scale_color_manual(breaks = c(F, T), values = c('black', 'red')) +
+  scale_size_manual(breaks = c(F, T), values = c(-1, 1)) + 
+  theme(axis.text.x = element_text(size = 6))
