@@ -1,12 +1,12 @@
-# author: Dani Cosme
+# author: Dani Cosme, John Flournoy
 # email: dcosme@uoregon.edu
-# version: 0.1
-# date: 2017-03-03
+# version: 0.2
+# date: 2017-05-25
 
 # This script loads functional volumes, calculates the mean global intensity value,
 # and returns a csv file 'study_globalIntensities.csv'
 # 
-# Inputs:
+# Inputs (in ..._config.R):
 # * subjectDir = path to subject directory
 # * functionalDir = path from subject's directory to to functional files
 # * outputDir = path where study_globalIntensities.csv will be written
@@ -44,26 +44,7 @@ if(!require(parallel)){
 }
 require(parallel)
 
-#------------------------------------------------------
-# define variables
-# these variables are all you should need to change
-# to run the script
-#------------------------------------------------------
-
-# paths
-subjectDir = "/Users/ralph/Documents/tds/fMRI/subjects/" #"/Volumes/FP/research/dsnlab/Studies/FP/subjects/" #"/Volumes/psych-cog/dsnlab/TDS/archive/subjects_G80/"
-functionalDir = "" #"/ppc/functionals/"
-outputDir = "/Users/ralph/Documents/tds/fMRI/analysis/fx/motion/auto-motion-output/" #"/Volumes/psych-cog/dsnlab/auto-motion-output/" 
-
-# variables
-study = "tds" #"FP"
-subPattern = "^[0-9]{3}" #"^FP[0-9]{3}"
-prefix = "ru" #"o" 
-runPattern = "(cyb|stop|vid)[1-8]" #"^run*" 
-threshold = 5000
-final_output_csv = file.path(outputDir,paste0(study,'_globalIntensities.csv'))
-parallelize = TRUE
-leave_n_free_cores = 1
+source('calculate_global_intensities_config.R')
 
 #------------------------------------------------------
 # calculate mean intensity for each functional image
@@ -72,6 +53,8 @@ leave_n_free_cores = 1
 # get subjects list from subject directory
 subjects = list.files(subjectDir, pattern = subPattern)
 
+print(paste0("Found ", length(unique(subjects)), "subject directories."))
+
 globint_for_sub <- function(sub, subjectDir, functionalDir, runPattern, prefix, threshold){
   runs = list.files(paste0(subjectDir,sub,functionalDir), pattern=runPattern)
   
@@ -79,6 +62,8 @@ globint_for_sub <- function(sub, subjectDir, functionalDir, runPattern, prefix, 
     # assign pattern based on prefix and run
     filePattern = paste0('^',prefix,'.*',run,'_*([0-9]{4}).nii.*')
     
+    print(paste0("Found ", length(unique(file_list)), "files for subject ", sub, ", run ", run, "."))
+
     # generate file path
     path = file.path(subjectDir,sub,'/',functionalDir,run)
     file_list = list.files(path, pattern = filePattern)
