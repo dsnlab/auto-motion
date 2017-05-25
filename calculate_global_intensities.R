@@ -26,20 +26,21 @@
 # load packages
 #------------------------------------------------------
 osuRepo = 'http://ftp.osuosl.org/pub/cran/'
+nopackage_message = "Required packages not found\nPlease run 'bash install_packages.bash' or 'sbatch install_packages.bash'"
 
 if(!require(devtools)){
-  install.packages('devtools',repos=osuRepo)
+  stop(nopackage_message)
 }
 if(!require(RNifti)){
-  devtools::install_github("jonclayden/RNifti")
+  stop(nopackage_message)
 }
 require(RNifti)
 if(!require(tidyverse)){
-  install.packages('tidyverse',repos=osuRepo)
+  stop(nopackage_message)
 }
 require(tidyverse)
 if(!require(parallel)){
-  install.packages('parallel',repos=osuRepo)
+  stop(nopackage_message)
 }
 require(parallel)
 
