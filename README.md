@@ -5,6 +5,8 @@ Scripts for automated assessment of motion artifacts in fMRI data based on chang
 ### 1. calculate_global_intensities.r
 This script reads in nifti files and calculates the mean global intensity and standard deviation for each functional volume specified.
 
+Edit options for this script in "calculate_global_intensities_config.R". If you are running this on a SLURM cluster, use "sbatch run_calc_glob_intens.bash" to run this job across 28 cores (or however many you prefer to specify in the header of the bash script).
+
 ### 2.motion_check.r
 This script takes the rp text files generated during realignment and calculates Euclidian composite scores for X,Y,Z translation and pitch, yaw, roll rotation.
 
