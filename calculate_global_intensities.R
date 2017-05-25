@@ -53,7 +53,7 @@ source('calculate_global_intensities_config.R')
 # get subjects list from subject directory
 subjects = list.files(subjectDir, pattern = subPattern)
 
-print(paste0("Found ", length(unique(subjects)), "subject directories."))
+message(paste0("Found ", length(unique(subjects)), " subject directories."))
 
 globint_for_sub <- function(sub, subjectDir, functionalDir, runPattern, prefix, threshold){
   runs = list.files(paste0(subjectDir,sub,functionalDir), pattern=runPattern)
@@ -66,7 +66,7 @@ globint_for_sub <- function(sub, subjectDir, functionalDir, runPattern, prefix, 
     path = file.path(subjectDir,sub,'/',functionalDir,run)
     file_list = list.files(path, pattern = filePattern)
     
-    print(paste0("Found ", length(unique(file_list)), "files for subject ", sub, ", run ", run, "."))
+    message(paste0("Subject ", sub, ", run ", run, ": Found ", length(unique(file_list)), " files."))
 
     for (file in file_list){
       # if the merged dataset doesn't exist, create it
@@ -106,7 +106,7 @@ globint_for_sub <- function(sub, subjectDir, functionalDir, runPattern, prefix, 
 
 if(parallelize){
   time_it_took <- system.time({
-    parallelCluster <- parallel::makeCluster(parallel::detectCores() - leave_n_free_cores)
+    parallelCluster <- parallel::makeCluster(parallel::detectCores() - leave_n_free_cores, outfile="")
     print(parallelCluster)
     datasets <- parallel::parLapply(parallelCluster, 
                                     subjects, 
@@ -126,7 +126,7 @@ if(parallelize){
     outdata <- bind_rows(datasets)
   })
 }
-cat(paste0("For ", length(subjects), " participant IDs, the system logged this much time: \n"))
+message(paste0("For ", length(subjects), " participant IDs, the system logged this much time: \n"))
 print(time_it_took)
 
 
