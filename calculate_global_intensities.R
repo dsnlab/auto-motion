@@ -62,12 +62,12 @@ globint_for_sub <- function(sub, subjectDir, functionalDir, runPattern, prefix, 
     # assign pattern based on prefix and run
     filePattern = paste0('^',prefix,'.*',run,'_*([0-9]{4}).nii.*')
     
-    print(paste0("Found ", length(unique(file_list)), "files for subject ", sub, ", run ", run, "."))
-
     # generate file path
     path = file.path(subjectDir,sub,'/',functionalDir,run)
     file_list = list.files(path, pattern = filePattern)
     
+    print(paste0("Found ", length(unique(file_list)), "files for subject ", sub, ", run ", run, "."))
+
     for (file in file_list){
       # if the merged dataset doesn't exist, create it
       if (!exists("dataset")){
