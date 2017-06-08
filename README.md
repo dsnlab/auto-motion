@@ -35,4 +35,4 @@ This script takes the rp text files generated during realignment and calculates 
 This script integrates global intensity values and Euclidian distance measures to determine which volumes have motion artifacts. Outputs include new rp_txt files with a trash regressor for motion artifacts, summaries of number and percent of trash volumes per subject and run, and plots of volumes by trash status for mean intensity, intensity standard deviation, and Euclidian rotation and traslation.
 
 **Example plot**
-![plot example](https://github.com/brainhack-eugene/auto-motion/blob/master/plot_example.png)
+![plot example](plot_example.png)
