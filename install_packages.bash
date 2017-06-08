@@ -10,4 +10,4 @@
 
 module load R gcc
 
-Rscript --verbose -e "if(!require(devtools)){ install.packages('devtools',repos=osuRepo) }; if(!require(RNifti)){ devtools::install_github('jonclayden/RNifti') }; if(!require(tidyverse)){ install.packages('tidyverse',repos=osuRepo) }; if(!require(parallel)){ install.packages('parallel',repos=osuRepo) };"
+Rscript --verbose -e "osuRepo = 'http://ftp.osuosl.org/pub/cran/'; if(!require(devtools)){ install.packages('devtools',repos=osuRepo) }; if(!require(RNifti)){ devtools::install_github('jonclayden/RNifti') }; if(!require(tidyverse)){ install.packages('tidyverse',repos=osuRepo) }; if(!require(parallel)){ install.packages('parallel',repos=osuRepo) };"
