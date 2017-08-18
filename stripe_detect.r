@@ -1,5 +1,5 @@
 #TEMPORARY
-file="/data/jflournoy/FP/FP034/run1/run1.nii"
+file="./s002_t1_ob_4D.nii.gz"
 img = RNifti::readNifti(file, internal = FALSE)
 #temporary
 
@@ -79,9 +79,9 @@ adf$tile <- findInterval(adf$freq, freq_tiles)
 adf %>% 
   group_by(t, tile) %>%
   summarize(freqtile_power = mean(power)) %>%
-  filter(tile > 5) %>%
-  mutate(red_zone = freqtile_power > .0015,
-         label = ifelse(red_zone, t, '')) %>%
+  filter(tile > 6) %>%
+  mutate(red_zone = freqtile_power > .003,
+         label = ifelse(red_zone, as.character(t), '')) %>%
   ggplot(aes(x = t, y = freqtile_power)) +
   geom_line(aes(group = tile, alpha = tile), size = .25) +
   geom_point(aes(group = tile, alpha = tile, color = red_zone, size = red_zone)) +
@@ -91,4 +91,6 @@ adf %>%
   scale_x_continuous(breaks = c(1, seq(5, max(adf$t), 5)), minor_breaks = 1:max(adf$t)) + 
   scale_color_manual(breaks = c(F, T), values = c('black', 'red')) +
   scale_size_manual(breaks = c(F, T), values = c(-1, 1)) + 
-  theme(axis.text.x = element_text(size = 6))
+  theme(axis.text.x = element_text(size = 6))+
+  geom_rect(aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), 
+            data = data.frame(xmin=c(10,80),xmax=c(40, 120), ymin=c(0,0), ymax=c(.016,.016), freqtile_power=c(0,0), t=c(0,0)))
