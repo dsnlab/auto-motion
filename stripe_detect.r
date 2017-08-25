@@ -57,9 +57,9 @@ options(warn=0)
 #------------------------------------------------------
 
 # paths
-subjectDir = "~/code_new/automotion-test-set/vids/projects/dsnlab/tds/fMRI/subjects_tds2/"
+subjectDir = "/home/flournoy/data/automotion-test-set/projects/dsnlab/tds/fMRI/subjects_tds2/"
 functionalDir = "" #e.g., "/ppc/functionals/"
-outputDir = "~/code_new/automotion-test-set/output/" 
+outputDir = "/home/flournoy/data/automotion-test-set/output/" 
 
 # variables
 study = "tds"
@@ -69,8 +69,8 @@ prefix = "_ru" #"o"
 runPattern = "(?:cyb|stop|vid)[1-8]" #"^run*" 
 final_output_csv = file.path(outputDir,paste0(study,'_stripes.csv'))
 remove_old_output = F # For now, remove it manually.
-parallelize = T#is.na(index)
-leave_n_free_cores = 1
+parallelize = is.na(index)
+leave_n_free_cores = 0
 
 #------------------------------------------------------
 # Functions
