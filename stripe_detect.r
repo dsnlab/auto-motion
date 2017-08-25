@@ -26,6 +26,10 @@
 #the script is being run once per file across multiple CPUs on one or more
 #HPC nodes.
 #
+#If you are running this on HPC/Talapas, first run
+#  Rscript stripe_detect.r filecount
+#and then follow the resulting instructions.
+#
 #The option "filecount" allows the script to merely return the numbre of
 #files to be processed so one can set the HPC script up properly
 options(warn=-1)
@@ -42,6 +46,7 @@ if (length(args)==0) {
 } else if (length(args)==1 & args[1] == 'filecount') {
   file_n_only=T
   index=NA
+  message('Calculating number of files to be processed...')
 } else {
   stop("Wrong arguments supplied.
 Command-line form:
@@ -176,10 +181,12 @@ fileListDF$subjectDir <- subjectDir
 
 
 if(file_n_only){
-  message(paste0("Number of files to process: ", dim(fileListDF)[1]))
+  message(paste0("Number of files to process: ", dim(fileListDF)[1],"\n",
+		 "Run: sbatch --array=1-[number of files] run_stripe_detect.bash"))
 } else {
   if(!file.exists(outputDir)){
-    dir.create(outputDir)
+      message(paste0(outputDir, ' does not exist. Creating it...'))
+      dir.create(outputDir)
   }
   if(is.na(index)){
     library(dplyr,tidyr)
@@ -188,7 +195,7 @@ if(file_n_only){
       group_by(file, subject, run) %>%
       do({
         file = paste0(.$subjectDir[[1]], .$file[[1]])
-        message(file)
+        message('Processing file: ', file)
         file_power_per_t <- stripes_for_nii(file, parallel = parallelize, aCluster = cl)
       })
     write.csv(slice_power_per_t, final_output_csv, row.names = F)
