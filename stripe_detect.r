@@ -30,7 +30,7 @@
 #files to be processed so one can set the HPC script up properly
 options(warn=-1)
 args = commandArgs(trailingOnly=T)
-message(args)
+
 # test if there is at least one argument: if not, return an error
 if (length(args)==0) {
   file_n_only=F
@@ -38,7 +38,7 @@ if (length(args)==0) {
 } else if (length(args)==1 & !is.na(as.numeric(args[1]))) {
   #args is a single numeric value
   file_n_only=F
-  index=args[1]
+  index=as.numeric(args[1])
 } else if (length(args)==1 & args[1] == 'filecount') {
   file_n_only=T
   index=NA
@@ -68,7 +68,8 @@ subPattern = "[0-9]{3}"
 prefix = "_ru" #"o" 
 runPattern = "(?:cyb|stop|vid)[1-8]" #"^run*" 
 final_output_csv = file.path(outputDir,paste0(study,'_stripes.csv'))
-parallelize = is.na(index)
+remove_old_output = F # For now, remove it manually.
+parallelize = T#is.na(index)
 leave_n_free_cores = 1
 
 #------------------------------------------------------
@@ -193,6 +194,10 @@ if(file_n_only){
     write.csv(slice_power_per_t, final_output_csv, row.names = F)
   } else {
     #index is set, so only do it for on the of the files.
+    if(index > dim(fileListDF)[1]){
+      stop("Index exceeds file list length.")
+    }
+    library(dplyr,tidyr)
     slice_power_per_t <- fileListDF %>%
       slice(index) %>%
       group_by(file, subject, run) %>%
