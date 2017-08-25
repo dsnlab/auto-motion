@@ -1,6 +1,8 @@
 #!/usr/bin/env Rscript
 # This script loads functional volumes, generates info for detecting stripes,
 # and returns a csv file specified in the options below.
+#
+# To use this efficiently on the grid, see 'run_stripe_detect.bash'
 # 
 # Inputs:
 # * subjectDir = path to subject directory
