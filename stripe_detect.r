@@ -30,7 +30,7 @@
 #  Rscript stripe_detect.r filecount
 #and then follow the resulting instructions.
 #
-#The option "filecount" allows the script to merely return the numbre of
+#The option "filecount" allows the script to merely return the number of
 #files to be processed so one can set the HPC script up properly
 options(warn=-1)
 args = commandArgs(trailingOnly=T)
@@ -74,7 +74,7 @@ prefix = "_ru" #"o"
 runPattern = "(?:cyb|stop|vid)[1-8]" #"^run*" 
 final_output_csv = file.path(outputDir,paste0(study,'_stripes.csv'))
 remove_old_output = F # For now, remove it manually.
-parallelize = is.na(index)
+parallelize = T#is.na(index)
 leave_n_free_cores = 0
 
 #------------------------------------------------------
@@ -101,7 +101,9 @@ quickbox <- function(volume, threshold = .2){
 
 welchPSD_from_slice <- function(slice){
   #slice is a 2d matrix encoding a coronal slice in a normal orientation
+  options(warn=-1)
   require(bspec)
+  options(warn=0)
   slice.ts <- ts(t(slice))
   wl <- welchPSD(slice.ts, seglength = dim(slice.ts)[1]-1, two.sided = TRUE, windowfun = hammingwindow)
   powerDF <- data.frame(power = wl$power,
@@ -164,7 +166,9 @@ stripes_for_nii <- function(filepath, parallel = F, aCluster = NA){
 #------------------------------------------------------
 
 if(parallelize){
+  options(warn=-1)
   library(parallel)
+  options(warn=0)
   mc.cores <- parallel::detectCores() - leave_n_free_cores
   cl <- makeCluster(mc.cores)
 } else {
@@ -189,7 +193,9 @@ if(file_n_only){
       dir.create(outputDir)
   }
   if(is.na(index)){
+    options(warn=-1)
     library(dplyr,tidyr)
+    options(warn=0)
     slice_power_per_t <- fileListDF %>%
       slice(1:2) %>% ###TESTING
       group_by(file, subject, run) %>%
@@ -204,7 +210,9 @@ if(file_n_only){
     if(index > dim(fileListDF)[1]){
       stop("Index exceeds file list length.")
     }
+    options(warn=-1)
     library(dplyr,tidyr)
+    options(warn=0)
     slice_power_per_t <- fileListDF %>%
       slice(index) %>%
       group_by(file, subject, run) %>%
