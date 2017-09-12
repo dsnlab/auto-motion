@@ -5,6 +5,10 @@ Scripts for automated assessment of motion artifacts in fMRI data based on chang
 ### 1. calculate_global_intensities.r
 This script reads in nifti files and calculates the mean global intensity and standard deviation for each functional volume specified.
 
+### 1.2. stripe_detect.r (see below)
+
+Optional, and experimental!
+
 ### 2.motion_check.r
 This script takes the rp text files generated during realignment and calculates Euclidian composite scores for X,Y,Z translation and pitch, yaw, roll rotation.
 
@@ -13,9 +17,6 @@ This script integrates global intensity values and Euclidian distance measures t
 
 **Example plot**
 ![plot example](plot_example.png)
-
-**Striping Detection Example Plot**
-![stripe plot](example_stripe_detect.png)
 
 ## Stripe Detection
 
@@ -30,3 +31,6 @@ If you are running it on an HPC cluster, you will need to edit the file `run_str
 Make sure you specify output directories in both `run_stripe_detect.bash` and `stripe_detect.r` correctly -- this is probably the biggest cause of errors (for me, so far).
 
 When the script finishes, the output file(s) will be in the output directory specified in the script.
+
+**Striping Detection Example Plot**
+![stripe plot](example_stripe_detect.png)
