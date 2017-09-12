@@ -67,10 +67,10 @@ nii4dFilePattern = "_ru.*_4d.nii.gz"
 subPattern = "[0-9]{3}"
 prefix = "_ru" #"o" 
 runPattern = "(?:cyb|stop|vid)[1-8]" #"^run*" 
-final_output_csv = file.path(outputDir,paste0(study,'_stripes.csv'))
+final_output_csv = file.path(outputDir,paste0(study,'_stripes_', ifelse(is.na(index), 1, index), '.csv'))
 remove_old_output = F # For now, remove it manually.
 parallelize = T#is.na(index)
-leave_n_free_cores = 1
+leave_n_free_cores = 0
 
 #------------------------------------------------------
 # Functions
