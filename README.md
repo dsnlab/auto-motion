@@ -16,3 +16,17 @@ This script integrates global intensity values and Euclidian distance measures t
 
 **Striping Detection Example Plot**
 ![stripe plot](https://raw.githubusercontent.com/brainhack-eugene/auto-motion/strip_detect/example_stripe_detect.png)
+
+## Stripe Detection
+
+The `stripe_detect.r` script attempts to automatically detect striping on volumes.
+
+This is even more experimental than the above intensity change detection. The main file for running this is `stripe_detect.r`. To set the proper paths, open the file and edit lines below `# define variables`. 
+
+It is set up to allow parallelization on an HPC cluster using array indexing. If you are running it on a local computer, it will still attempt to parallize across cores if `parallelize = T`. Once options are set, you can simply run `Rscript stripe_detect.r` from the command line.
+
+If you are running it on an HPC cluster, you will need to edit the file `run_stripe_detect.bash` for your cluster. To index this properly, you need to know how many files it will process. If you run `Rscript stripe_detect.r filecount` from the command line, it will provide you with the command line you need to run for proper indexing on a SLURM system.
+
+Make sure you specify output directories in both `run_stripe_detect.bash` and `stripe_detect.r` correctly -- this is probably the biggest cause of errors (for me, so far).
+
+When the script finishes, the output file(s) will be in the output directory specified in the script.
