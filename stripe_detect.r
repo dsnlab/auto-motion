@@ -66,7 +66,7 @@ options(warn=0)
 # paths
 subjectDir = "/home/flournoy/data/automotion-test-set/projects/dsnlab/tds/fMRI/subjects_tds2/"
 functionalDir = "" #e.g., "/ppc/functionals/"
-outputDir = "/home/flournoy/data/automotion-test-set/output/" 
+outputDir = "/home/flournoy/code/automotion-test-set/output/" 
 
 # variables
 study = "tds"
@@ -74,7 +74,6 @@ nii4dFilePattern = "_ru.*_4d.nii.gz"
 subPattern = "[0-9]{3}"
 prefix = "_ru" #"o" 
 runPattern = "(?:cyb|stop|vid)[1-8]" #"^run*" 
-final_output_csv = file.path(outputDir,paste0(study,'_stripes_', ifelse(is.na(index), 1, index), '.csv'))
 remove_old_output = F # For now, remove it manually.
 parallelize = T#is.na(index)
 leave_n_free_cores = 0
@@ -166,6 +165,8 @@ stripes_for_nii <- function(filepath, parallel = F, aCluster = NA){
 #------------------------------------------------------
 # Run the things
 #------------------------------------------------------
+
+final_output_csv = file.path(outputDir,paste0(study,'_stripes_', ifelse(is.na(index), 1, index), '.csv'))
 
 if(parallelize){
   options(warn=-1)
