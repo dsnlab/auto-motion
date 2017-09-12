@@ -1,6 +1,8 @@
 #!/usr/bin/env Rscript
 # This script loads functional volumes, generates info for detecting stripes,
 # and returns a csv file specified in the options below.
+#
+# To use this efficiently on the grid, see 'run_stripe_detect.bash'
 # 
 # Inputs:
 # * subjectDir = path to subject directory
@@ -26,7 +28,11 @@
 #the script is being run once per file across multiple CPUs on one or more
 #HPC nodes.
 #
-#The option "filecount" allows the script to merely return the numbre of
+#If you are running this on HPC/Talapas, first run
+#  Rscript stripe_detect.r filecount
+#and then follow the resulting instructions.
+#
+#The option "filecount" allows the script to merely return the number of
 #files to be processed so one can set the HPC script up properly
 options(warn=-1)
 args = commandArgs(trailingOnly=T)
@@ -42,6 +48,7 @@ if (length(args)==0) {
 } else if (length(args)==1 & args[1] == 'filecount') {
   file_n_only=T
   index=NA
+  message('Calculating number of files to be processed...')
 } else {
   stop("Wrong arguments supplied.
 Command-line form:
@@ -57,9 +64,9 @@ options(warn=0)
 #------------------------------------------------------
 
 # paths
-subjectDir = "~/code_new/automotion-test-set/vids/projects/dsnlab/tds/fMRI/subjects_tds2/"
+subjectDir = "/home/flournoy/data/automotion-test-set/projects/dsnlab/tds/fMRI/subjects_tds2/"
 functionalDir = "" #e.g., "/ppc/functionals/"
-outputDir = "~/code_new/automotion-test-set/output/" 
+outputDir = "/home/flournoy/data/automotion-test-set/output/" 
 
 # variables
 study = "tds"
@@ -96,7 +103,9 @@ quickbox <- function(volume, threshold = .2){
 
 welchPSD_from_slice <- function(slice){
   #slice is a 2d matrix encoding a coronal slice in a normal orientation
+  options(warn=-1)
   require(bspec)
+  options(warn=0)
   slice.ts <- ts(t(slice))
   wl <- welchPSD(slice.ts, seglength = dim(slice.ts)[1]-1, two.sided = TRUE, windowfun = hammingwindow)
   powerDF <- data.frame(power = wl$power,
@@ -159,7 +168,9 @@ stripes_for_nii <- function(filepath, parallel = F, aCluster = NA){
 #------------------------------------------------------
 
 if(parallelize){
+  options(warn=-1)
   library(parallel)
+  options(warn=0)
   mc.cores <- parallel::detectCores() - leave_n_free_cores
   cl <- makeCluster(mc.cores)
 } else {
@@ -176,19 +187,23 @@ fileListDF$subjectDir <- subjectDir
 
 
 if(file_n_only){
-  message(paste0("Number of files to process: ", dim(fileListDF)[1]))
+  message(paste0("Number of files to process: ", dim(fileListDF)[1],"\n",
+		 "Run: sbatch --array=1-[number of files] run_stripe_detect.bash"))
 } else {
   if(!file.exists(outputDir)){
-    dir.create(outputDir)
+      message(paste0(outputDir, ' does not exist. Creating it...'))
+      dir.create(outputDir)
   }
   if(is.na(index)){
+    options(warn=-1)
     library(dplyr,tidyr)
+    options(warn=0)
     slice_power_per_t <- fileListDF %>%
       slice(1:2) %>% ###TESTING
       group_by(file, subject, run) %>%
       do({
         file = paste0(.$subjectDir[[1]], .$file[[1]])
-        message(file)
+        message('Processing file: ', file)
         file_power_per_t <- stripes_for_nii(file, parallel = parallelize, aCluster = cl)
       })
     write.csv(slice_power_per_t, final_output_csv, row.names = F)
@@ -197,7 +212,9 @@ if(file_n_only){
     if(index > dim(fileListDF)[1]){
       stop("Index exceeds file list length.")
     }
+    options(warn=-1)
     library(dplyr,tidyr)
+    options(warn=0)
     slice_power_per_t <- fileListDF %>%
       slice(index) %>%
       group_by(file, subject, run) %>%
