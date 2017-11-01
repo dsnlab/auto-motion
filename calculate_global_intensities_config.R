@@ -10,6 +10,7 @@
 # * final_output_csv = path and file name for 'study_globalIntensities.csv'
 # * parallelize = use TRUE to parallelize, FALSE if not
 # * leave_n_free_cores = number of cores to leave free
+
 #------------------------------------------------------
 # define variables
 # these variables are all you should need to change

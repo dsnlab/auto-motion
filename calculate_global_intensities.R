@@ -5,7 +5,7 @@
 
 # This script loads functional volumes, calculates the mean global intensity value,
 # and returns a csv file 'study_globalIntensities.csv'
-# 
+
 # Inputs (in ..._config.R):
 # * subjectDir = path to subject directory
 # * functionalDir = path from subject's directory to to functional files
@@ -18,7 +18,7 @@
 # * final_output_csv = path and file name for 'study_globalIntensities.csv'
 # * parallelize = use TRUE to parallelize, FALSE if not
 # * leave_n_free_cores = number of cores to leave free
-#
+
 # Outputs:
 # * study_globalIntensities.csv = CSV file with global intensity value for each image
 
