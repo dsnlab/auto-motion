@@ -1,12 +1,12 @@
-# author: Dani Cosme
+# author: Dani Cosme, John Flournoy
 # email: dcosme@uoregon.edu
-# version: 0.1
-# date: 2017-03-03
+# version: 0.2
+# date: 2017-05-25
 
 # This script loads functional volumes, calculates the mean global intensity value,
 # and returns a csv file 'study_globalIntensities.csv'
-# 
-# Inputs:
+
+# Inputs (in ..._config.R):
 # * subjectDir = path to subject directory
 # * functionalDir = path from subject's directory to to functional files
 # * outputDir = path where study_globalIntensities.csv will be written
@@ -18,7 +18,7 @@
 # * final_output_csv = path and file name for 'study_globalIntensities.csv'
 # * parallelize = use TRUE to parallelize, FALSE if not
 # * leave_n_free_cores = number of cores to leave free
-#
+
 # Outputs:
 # * study_globalIntensities.csv = CSV file with global intensity value for each image
 
@@ -26,43 +26,25 @@
 # load packages
 #------------------------------------------------------
 osuRepo = 'http://ftp.osuosl.org/pub/cran/'
+nopackage_message = "Required packages not found\nPlease run 'bash install_packages.bash' or 'sbatch install_packages.bash'"
 
 if(!require(devtools)){
-  install.packages('devtools',repos=osuRepo)
+  stop(nopackage_message)
 }
 if(!require(RNifti)){
-  devtools::install_github("jonclayden/RNifti")
+  stop(nopackage_message)
 }
 require(RNifti)
 if(!require(tidyverse)){
-  install.packages('tidyverse',repos=osuRepo)
+  stop(nopackage_message)
 }
 require(tidyverse)
 if(!require(parallel)){
-  install.packages('parallel',repos=osuRepo)
+  stop(nopackage_message)
 }
 require(parallel)
 
-#------------------------------------------------------
-# define variables
-# these variables are all you should need to change
-# to run the script
-#------------------------------------------------------
-
-# paths
-subjectDir = "/Users/ralph/Documents/tds/fMRI/subjects/" #"/Volumes/FP/research/dsnlab/Studies/FP/subjects/" #"/Volumes/psych-cog/dsnlab/TDS/archive/subjects_G80/"
-functionalDir = "" #"/ppc/functionals/"
-outputDir = "/Users/ralph/Documents/tds/fMRI/analysis/fx/motion/auto-motion-output/" #"/Volumes/psych-cog/dsnlab/auto-motion-output/" 
-
-# variables
-study = "tds" #"FP"
-subPattern = "^[0-9]{3}" #"^FP[0-9]{3}"
-prefix = "ru" #"o" 
-runPattern = "(cyb|stop|vid)[1-8]" #"^run*" 
-threshold = 5000
-final_output_csv = file.path(outputDir,paste0(study,'_globalIntensities.csv'))
-parallelize = TRUE
-leave_n_free_cores = 1
+source('calculate_global_intensities_config.R')
 
 #------------------------------------------------------
 # calculate mean intensity for each functional image
@@ -70,6 +52,8 @@ leave_n_free_cores = 1
 
 # get subjects list from subject directory
 subjects = list.files(subjectDir, pattern = subPattern)
+
+message(paste0("Found ", length(unique(subjects)), " subject directories."))
 
 globint_for_sub <- function(sub, subjectDir, functionalDir, runPattern, prefix, threshold){
   runs = list.files(paste0(subjectDir,sub,functionalDir), pattern=runPattern)
@@ -82,6 +66,8 @@ globint_for_sub <- function(sub, subjectDir, functionalDir, runPattern, prefix, 
     path = file.path(subjectDir,sub,'/',functionalDir,run)
     file_list = list.files(path, pattern = filePattern)
     
+    message(paste0("Subject ", sub, ", run ", run, ": Found ", length(unique(file_list)), " files."))
+
     for (file in file_list){
       # if the merged dataset doesn't exist, create it
       if (!exists("dataset")){
@@ -120,7 +106,7 @@ globint_for_sub <- function(sub, subjectDir, functionalDir, runPattern, prefix, 
 
 if(parallelize){
   time_it_took <- system.time({
-    parallelCluster <- parallel::makeCluster(parallel::detectCores() - leave_n_free_cores)
+    parallelCluster <- parallel::makeCluster(parallel::detectCores() - leave_n_free_cores, outfile="")
     print(parallelCluster)
     datasets <- parallel::parLapply(parallelCluster, 
                                     subjects, 
@@ -140,7 +126,7 @@ if(parallelize){
     outdata <- bind_rows(datasets)
   })
 }
-cat(paste0("For ", length(subjects), " participant IDs, the system logged this much time: \n"))
+message(paste0("For ", length(subjects), " participant IDs, the system logged this much time: \n"))
 print(time_it_took)
 
 
