@@ -35,25 +35,7 @@ if(!require(tidyverse)){
   install.packages('tidyverse',repos=osuRepo)
 }
 
-#------------------------------------------------------
-# define variables
-# these variables are all you should need to change
-# to run the script
-#------------------------------------------------------
-# paths
-rpDir = '/Volumes/FP/research/dsnlab/Studies/FP/motion/rp_txt/'
-outputDir = '/Volumes/psych-cog/dsnlab/auto-motion-output/'
-rpOutputDir = '/Volumes/FP/research/dsnlab/Studies/FP/motion/rp_auto_txt/'
-plotDir = '/Volumes/psych-cog/dsnlab/auto-motion-output/plots/FP/'
-
-# variables
-study = "FP"
-rpPattern = "^rp_(FP[0-9]{3})_(.*).txt"
-rpCols = c("euclidian_trans","euclidian_rot","euclidian_trans_deriv","euclidian_rot_deriv","trash.rp")
-
-# write new rp_txt and plots files?
-writeRP = TRUE
-writePlots = TRUE
+source('auto_trash_config.R')
 
 #------------------------------------------------------
 # load global intensity data
