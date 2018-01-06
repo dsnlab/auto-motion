@@ -1,0 +1,200 @@
+---
+title: "compare"
+author: "Dani Cosme"
+date: "March 3, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, fig.width = 15, fig.height = 15)
+```
+
+# load packages
+```{r}
+library(tidyverse)
+library(knitr)
+```
+
+# define variables
+```{r}
+# paths
+outputDir = '/Volumes/psych-cog/dsnlab/auto-motion-output/'
+
+# variables
+study = "FP"
+```
+
+# load data
+```{r}
+# global intensity file created using calculate_global_intensities.R
+trash = read.csv(paste0(outputDir,study,'_autoTrash.csv'))
+
+# manually coded file created using manually_coded.R
+manual = read.csv(paste0(outputDir,study,'_manuallyCoded.csv'))
+
+# afni 3dToutCount outlier created using merge_outcount.R
+outcount = read.csv(paste0(outputDir,study,'_outcount.csv')) %>%
+  filter(poly == "p2") %>%
+  mutate(trashOut = ifelse(outliers > .075, 1, 0))
+```
+
+# compare to manual data
+```{r}
+# filter trash dataframe and join with filteredMotion
+joined = trash %>% 
+  left_join(., manual) %>%
+  left_join(., outcount, by = c("subjectID","run","volume")) %>%
+  mutate(auto = ifelse(trash.auto == 1 & trash == 1, 2, 
+                ifelse(trash.auto == 1 & trash == 0, 3, trash)),
+         outcount = ifelse(trashOut == 1 & trash == 1, 2,
+                    ifelse(trashOut == 1 & trash == 0, 3, trash)))
+joined.plot = joined %>%
+  select(subjectID, run, volume, volMean, volSD, starts_with("euclidian"), trash.auto, trashOut, trash, auto, outcount) %>%
+  gather(compare, code, -c(subjectID, run, volume, volMean, volSD, trash.auto, trashOut, trash, starts_with("euclidian")))
+
+# check false negatives
+falseNeg.auto = joined %>% filter(trash.auto == 0 & trash == 1)
+falseNeg.outcount = joined %>% filter(trashOut == 0 & trash == 1)
+
+# check false positives
+falsePos.auto = joined %>% filter(trash.auto == 1 & trash == 0)
+falsePos.outcount = joined %>% filter(trashOut == 1 & trash == 0)
+
+# check hits
+hits.auto = joined %>% filter(trash.auto == 1 & trash == 1)
+hits.outcount = joined %>% filter(trashOut == 1 & trash == 1)
+```
+
+# summarize results
+## print group-level results
+```{r}
+table = data.frame(falseNeg = c(length(falseNeg.auto$trash),length(falseNeg.outcount$trash)),
+           falsePos = c(length(falsePos.auto$trash),length(falsePos.outcount$trash)),
+           hits = c(length(hits.auto$trash),length(hits.outcount$trash)))
+row.names(table)=c("auto","outcount")
+kable(table,format = "pandoc")
+```
+
+## summarize by participants
+```{r}
+nVol = joined %>% group_by(subjectID) %>% summarize(nVol = length(volume))
+summaryPos = falsePos.auto %>% group_by(subjectID) %>% summarize(falsePos = sum(trash.auto, na.rm=T))
+summaryNeg = falseNeg.auto %>% group_by(subjectID) %>% summarize(falseNeg = sum(trash, na.rm=T))
+summaryPosNeg = nVol %>%
+  full_join(., summaryPos, by = "subjectID") %>% 
+  full_join(., summaryNeg, by = "subjectID") %>% 
+  mutate(falseNeg = ifelse(is.na(falseNeg), 0, falseNeg),
+         falsePos = ifelse(is.na(falsePos), 0, falsePos),
+         totalErrors = falsePos + falseNeg,
+         percentErrors = (totalErrors/nVol)*100)
+```
+
+# print subject-level results
+```{r}
+joined %>% group_by(subjectID) %>% 
+  summarise(trashManual = sum(trash, na.rm = T), 
+            trashAuto = sum(trash.auto, na.rm = T)) %>%
+  full_join(., summaryPosNeg, by = "subjectID") %>%
+  select(-nVol) %>%
+  arrange(trashManual) %>%
+  kable(format = "pandoc", digits = 1)
+```
+
+```{r}
+# visualize for each subject subject
+joined.plot = joined.plot %>% mutate(code = as.factor(code)) %>%
+  select(subjectID, run, volume, volMean, volSD, compare, code, starts_with("euclidian")) %>%
+  gather(measure, value, -c(subjectID, run, compare, volume, code)) %>%
+  filter(compare == "auto")
+
+nada = joined.plot %>% group_by(subjectID) %>%
+  do({
+    plot = ggplot(., aes(volume, value)) +
+      geom_point(aes(color = code)) +
+      geom_line() +
+      facet_grid(measure + compare ~ run, scales= "free") +
+      scale_colour_discrete(drop = FALSE, labels=c("not trash", "false neg", "hit", "false pos")) +
+      labs(title = .$subjectID[[1]])
+    print(plot)
+    #ggsave(plot, file=paste0(outputDir,'plots/',.$subjectID[[1]],'.png'), width = 12)
+    data.frame()
+  })
+
+```
+
+# predict manually coded data using a linear discriminant classifier
+```{r}
+# library(caret)
+# data = joined %>%
+#   dplyr::select(subjectID, run, volume, auto, volMean, volSD, Diff.mean, Diff.sd, matches("euclidian.*deriv"), trash) %>%
+#   mutate(trash = ifelse(trash == 1, "trash", "notTrash")) %>%
+#   na.omit()
+# 
+# inTraining = createDataPartition(data$subjectID, p=.75, list=F)
+# training = data[inTraining,]
+# testing = data[-inTraining,]
+# 
+# fitControl = trainControl(## 10-fold CV
+#                            method = "repeatedcv",
+#                            number = 10,
+#                            ## repeated ten times
+#                            repeats = 10,
+#                            summaryFunction = twoClassSummary,
+#                            classProbs = TRUE)
+# 
+# ldaFit1 = train(trash ~ ., data = training[,5:11], 
+#                  method = "lda", 
+#                  trControl = fitControl,
+#                  metric = "ROC",
+#                  verbose = FALSE)
+# ldaFit1
+# 
+# training$predicted = predict.train(ldaFit1, training)
+# confusionMatrix(data=training$predicted, reference = training$trash)
+# 
+# testing$predicted = predict.train(ldaFit1, testing)
+# confusionMatrix(data=testing$predicted, reference = testing$trash)
+# 
+# ldaFit1$finalModel
+```
+
+```{r}
+# detach("package:MASS", unload=TRUE)
+# joined.subset = joined %>%
+#   select(subjectID, run, volume, volMean, volSD, matches("euclidian.*deriv"), trash, auto, outcount)
+# 
+# ldaOutput = training %>%
+#   bind_rows(testing) %>%
+#   mutate(trash = ifelse(trash == "trash",1,0),
+#          predicted = ifelse(predicted == "trash",1,0)) %>%
+#   mutate(lda = ifelse(predicted == 1 & trash == 1, 2, 
+#                                 ifelse(predicted == 1 & trash == 0, 3, trash)))
+# lda.plot = ldaOutput %>%
+#   select(subjectID, run, volume, volMean, volSD, starts_with("euclidian"), auto, lda) %>%
+#   gather(compare, code, -c(subjectID, run, volume, volMean, volSD, starts_with("euclidian"))) %>% 
+#   mutate(code = as.factor(code)) %>%
+#   gather(measure, value, -c(subjectID, run, volume, compare, code))
+# 
+# nada = lda.plot %>% group_by(subjectID) %>%
+#   do({
+#     plot = ggplot(., aes(volume, value)) + 
+#       geom_point(aes(color = code)) + 
+#       geom_line() + 
+#       facet_grid(measure + compare ~ run, scales= "free") +
+#       scale_colour_discrete(drop = FALSE, labels=c("not trash", "false neg", "hit", "false pos")) + 
+#       labs(title = .$subjectID[[1]])
+#     print(plot)
+#     #ggsave(plot, file=paste0(outputDir,'plots/',.$subjectID[[1]],'.png'), width = 12)
+#     data.frame()
+#   })
+```
+
+
+# scratch code for plotting slices
+```{r}
+# image(img, z=50, plane="coronal", plot.type="single")
+# img.slice=img[1:104,50,1:72]
+# image(img.slice, col=gray(0:64/64))
+# 
+# bspec::welchPSD()
+```
