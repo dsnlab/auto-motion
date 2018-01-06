@@ -57,26 +57,35 @@ or
   Rscript script.R filecount")
 }
 options(warn=0)
+
 #------------------------------------------------------
-# define variables
-# these variables are all you should need to change
-# to run the script
+# load packages
+#------------------------------------------------------
+osuRepo = 'http://ftp.osuosl.org/pub/cran/'
+nopackage_message = "Required packages not found\nPlease run 'bash install_packages.bash' or 'sbatch install_packages.bash'"
+
+if(!require(bspec)){
+  stop(nopackage_message)
+}
+require(bspec)
+if(!require(RNifti)){
+  stop(nopackage_message)
+}
+require(RNifti)
+if(!require(tidyverse)){
+  stop(nopackage_message)
+}
+require(tidyverse)
+if(!require(parallel)){
+  stop(nopackage_message)
+}
+require(parallel)
+
+#------------------------------------------------------
+# source variables
 #------------------------------------------------------
 
-# paths
-subjectDir = "/home/flournoy/data/automotion-test-set/projects/dsnlab/tds/fMRI/subjects_tds2/"
-functionalDir = "" #e.g., "/ppc/functionals/"
-outputDir = "/home/flournoy/code/automotion-test-set/output/" 
-
-# variables
-study = "tds"
-nii4dFilePattern = "_ru.*_4d.nii.gz"
-subPattern = "[0-9]{3}"
-prefix = "_ru" #"o" 
-runPattern = "(?:cyb|stop|vid)[1-8]" #"^run*" 
-remove_old_output = F # For now, remove it manually.
-parallelize = T#is.na(index)
-leave_n_free_cores = 0
+source('stripe_detect_config.R')
 
 #------------------------------------------------------
 # Functions
@@ -178,14 +187,13 @@ if(parallelize){
   cl <- NA
 }
 
-extractSubRunPattern <- paste0('.*/*(', subPattern, ')/.*(', runPattern,').*', nii4dFilePattern)
+#extractSubRunPattern <- paste0('.*/*(', subPattern, ')/.*(', runPattern,').*', nii4dFilePattern)
 filelist = data.frame(file = list.files(subjectDir, pattern = nii4dFilePattern, recursive = T))
 fileListDF <- tidyr::extract(data = filelist,
                              col = file, into = c('subject', 'run'),
                              regex = paste0('.*/*(', subPattern, ')/.*(', runPattern,').*', nii4dFilePattern),
                              remove = F)
 fileListDF$subjectDir <- subjectDir
-
 
 if(file_n_only){
   message(paste0("Number of files to process: ", dim(fileListDF)[1],"\n",
@@ -200,7 +208,7 @@ if(file_n_only){
     library(dplyr,tidyr)
     options(warn=0)
     slice_power_per_t <- fileListDF %>%
-      slice(1:2) %>% ###TESTING
+      #slice(1:2) %>% ###TESTING
       group_by(file, subject, run) %>%
       do({
         file = paste0(.$subjectDir[[1]], .$file[[1]])
@@ -232,27 +240,27 @@ if(file_n_only){
   }
   
   if(FALSE){
-    library(tidyverse)
+    # library(tidyverse)
     #summarize and plot
     #let's ignore the lower frequencies because they don't show motion
-    slice_power_per_t  %>%
-      group_by(tile) %>%
-      mutate(freqtile_power_c = freqtile_power - min(freqtile_power)) %>%
-      filter(tile > 8) %>%
-      mutate(red_zone = freqtile_power_c > .0003,
-             label = ifelse(red_zone, as.character(t), '')) %>%
-      ggplot(aes(x = t, y = freqtile_power_c)) +
-      geom_line(aes(group = tile, alpha = tile), size = .25) +
-      geom_point(aes(group = tile, alpha = tile, color = red_zone, size = red_zone)) +
-      geom_text(aes(label = label), size = 3, position = position_nudge(x = 2, y = .000075)) + 
-      # geom_segment(aes(xend = t, group = tile, alpha = tile), yend = 0) +
-      # coord_trans(y = 'log') +
-      scale_x_continuous(breaks = c(1, seq(5, max(slice_power_per_t$t), 5)), minor_breaks = 1:max(slice_power_per_t$t)) + 
-      scale_color_manual(breaks = c(F, T), values = c('black', 'red')) +
-      scale_alpha_continuous(range = c(.5, 1), breaks = 1:max(slice_power_per_t$tile)) + 
-      scale_size_manual(breaks = c(F, T), values = c(.25, 1)) + 
-      facet_wrap(~subject+run) + 
-      theme(axis.text.x = element_text(size = 6))
+    # slice_power_per_t  %>%
+    #   group_by(tile) %>%
+    #   mutate(freqtile_power_c = freqtile_power - min(freqtile_power)) %>%
+    #   filter(tile > 8) %>%
+    #   mutate(red_zone = freqtile_power_c > .0003,
+    #          label = ifelse(red_zone, as.character(t), '')) %>%
+    #   ggplot(aes(x = t, y = freqtile_power_c)) +
+    #   geom_line(aes(group = tile, alpha = tile), size = .25) +
+    #   geom_point(aes(group = tile, alpha = tile, color = red_zone, size = red_zone)) +
+    #   geom_text(aes(label = label), size = 3, position = position_nudge(x = 2, y = .000075)) + 
+    #   # geom_segment(aes(xend = t, group = tile, alpha = tile), yend = 0) +
+    #   # coord_trans(y = 'log') +
+    #   scale_x_continuous(breaks = c(1, seq(5, max(slice_power_per_t$t), 5)), minor_breaks = 1:max(slice_power_per_t$t)) + 
+    #   scale_color_manual(breaks = c(F, T), values = c('black', 'red')) +
+    #   scale_alpha_continuous(range = c(.5, 1), breaks = 1:max(slice_power_per_t$tile)) + 
+    #   scale_size_manual(breaks = c(F, T), values = c(.25, 1)) + 
+    #   facet_wrap(~subject+run) + 
+    #   theme(axis.text.x = element_text(size = 6))
     # +
     #   geom_rect(aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), 
     #             data = data.frame(xmin=c(10,80),xmax=c(40, 120), ymin=c(0,0), ymax=c(.016,.016), freqtile_power=c(0,0), t=c(0,0)))
