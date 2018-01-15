@@ -48,89 +48,8 @@ if(!require(stringr)){
 	install.packages('stringr',repos=osuRepo)
 }
 library(stringr)
-#
-# Directories
-#	!!: Make sure the directories below exist. This script will not make them.
-#
-# base directory for subjects
-subjsDir<-'/home/research/tds/subjects_G80' 
-# requires trailing '/' - this is the path to prepend to output pdf filename. 
-motionPDFdir<-'/home/research/tds/motion_QC/G80/' 
-# requires trailing '/' - this is where the augmented rp_*txt files go
-motion_rp_txt_dir<-'/home/research/tds/motion_QC/G80/rp_txt/'
 
-
-#
-# Extracting Subject and Run ids
-#
-# We need to extract subject id and run id from the path. To do so, 
-# you need to set the regular expressions below to capture the correct 
-# information. The expression needs to match the whole path -- for example:
-# '^(t[0-9]{3})/.*txt' will match
-# "t165/ppc/functionals/vid2/rp_vid2_0001.txt" in its entirety, but the 
-# parentheses will allow us to pick out just the 't165'.
-#
-sid_regex<-'^(t[0-9]{3})/.*txt' #add regular expression for subject ID between the `()`
-rid_regex<-'^t[0-9]{3}/ppc/functionals/(\\w+)/.*txt' #add regular expression for run ID between `()`
-
-#
-# Document options
-#
-# can also be html_document
-docType<-'pdf_document' 
-# change according to docType
-docTypeExtension<-'.pdf' 
-figureWidth<-7.75
-figureHeight<-10.25
-dpi=300
-dev='svg' #Can change to png or pdf if you prefer.
-
-###
-# rp_txt output options
-#######################
-#
-# Do you want to export new rp_txt files into the above rp_txt_dir?
-RP_EXPORT = TRUE
-# These are the first 3 columns in the raw rp_*txt file output by SPM
-# units: mm
-raw_trans = FALSE
-# These are the second 3 columns in the raw rp_*txt file output by SPM
-# units: mm on a circle where r=50mm
-raw_rot = FALSE
-# These next two are the above two but with their lag-1 values subtracted - volume to volume change
-# units: mm
-raw_trans_deriv = FALSE
-raw_rot_deriv = FALSE
-# These next four are the same as the above 4 but detrended with `detrend`
-# units: mm
-dt_raw_trans = FALSE
-dt_raw_rot = FALSE
-dt_raw_trans_deriv = FALSE
-dt_raw_rot_deriv = FALSE
-# Absolute displacement, calc'd below
-# units: mm
-euclidian_trans = TRUE
-# This is proportional to absolute rotation, calc'd below
-# units: mm
-euclidian_rot = TRUE
-# These next two are the volume to volume differences in the above two
-# units: mm
-euclidian_trans_deriv = TRUE
-euclidian_rot_deriv = TRUE
-#
-## Trash regressor options
-#
-TRASH_REGRESSOR = TRUE
-#`trash_expression` is a logical expression using *only* the variable names above.
-#For example `(raw_trans_deriv > 2)` would check each of the x, y, and z
-#translational derivatives, and if any are over 2mm, would put a 1 in the
-#trash regressor column, and a 0 otherwise.  
-#trash_expression<-'(raw_trans_deriv > 2) & (raw_rot_deriv > 10) | (euclidian_rot_deriv > 1)'
-trash_expression<-'(euclidian_trans_deriv < -1 ) | (euclidian_rot_deriv < -1) | (euclidian_trans_deriv > 1 ) | (euclidian_rot_deriv > 1)'
-###################################
-
-
-	
+source('motion_check_config.r')
 
 ####################################
 # Dragons Below          ######
@@ -395,32 +314,33 @@ write.csv(
   row.names=F)
 
 
+if(PLOT_EXPORT){
+	motionWrittenToFile<-rawmotion %>% 
+	ungroup() %>%
+	select(-rp_file) %>%
+	#filter(subject %in% c('t101','t102')) %>%
+	group_by(subject) %>%
+	do(
+		RmdFile=knit_a_bit(.))
 
-motionWrittenToFile<-rawmotion %>% 
-ungroup() %>%
-select(-rp_file) %>%
-#filter(subject %in% c('t101','t102')) %>%
-group_by(subject) %>%
-do(
-	RmdFile=knit_a_bit(.))
+	deriv_trans_plot<-rawmotion %>% ungroup %>%
+		ggplot(aes(x=deriv_trans))+
+		geom_histogram(binwidth=.075,fill='red',alpha=.6)+
+		facet_grid(subject~run)+
+		coord_cartesian(x=c(-1.5,1.5))+
+		theme(
+			panel.background=element_rect(fill='white'),
+			axis.text=element_text(size=6),
+			axis.text.x=element_text(angle=270))+
+		labs(
+			x='Volume-to-volume differences in absolute distance from first image (mm)',
+			y='Count',
+			title='Histograms of Between-Volume Motion by Participant and by Run')
 
-deriv_trans_plot<-rawmotion %>% ungroup %>%
-	ggplot(aes(x=deriv_trans))+
-	geom_histogram(binwidth=.075,fill='red',alpha=.6)+
-	facet_grid(subject~run)+
-	coord_cartesian(x=c(-1.5,1.5))+
-	theme(
-		panel.background=element_rect(fill='white'),
-		axis.text=element_text(size=6),
-		axis.text.x=element_text(angle=270))+
-	labs(
-		x='Volume-to-volume differences in absolute distance from first image (mm)',
-		y='Count',
-		title='Histograms of Between-Volume Motion by Participant and by Run')
-
-ggsave(
-	deriv_trans_plot,
-	file=paste(motionPDFdir,'displacement_hist-all_subjs.pdf',sep=''),
-	width=17,
-	height=22,
-	units="in")
+	ggsave(
+		deriv_trans_plot,
+		file=paste(motionPDFdir,'displacement_hist-all_subjs.pdf',sep=''),
+		width=17,
+		height=22,
+		units="in")
+}
