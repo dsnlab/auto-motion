@@ -190,7 +190,7 @@ if(parallelize){
 #extractSubRunPattern <- paste0('.*/*(', subPattern, ')/.*(', runPattern,').*', nii4dFilePattern)
 filelist = data.frame(file = list.files(subjectDir, pattern = nii4dFilePattern, recursive = T))
 fileListDF <- tidyr::extract(data = filelist,
-                             col = file, into = c('subject', 'run'),
+                             col = file, into = c('subjectID', 'run'),
                              regex = paste0('.*/*(', subPattern, ')/.*(', runPattern,').*', nii4dFilePattern),
                              remove = F)
 fileListDF$subjectDir <- subjectDir
@@ -209,7 +209,7 @@ if(file_n_only){
     options(warn=0)
     slice_power_per_t <- fileListDF %>%
       #slice(1:2) %>% ###TESTING
-      group_by(file, subject, run) %>%
+      group_by(file, subjectID, run) %>%
       do({
         file = paste0(.$subjectDir[[1]], .$file[[1]])
         message('Processing file: ', file)
@@ -226,7 +226,7 @@ if(file_n_only){
     options(warn=0)
     slice_power_per_t <- fileListDF %>%
       slice(index) %>%
-      group_by(file, subject, run) %>%
+      group_by(file, subjectID, run) %>%
       do({
         file = paste0(.$subjectDir[[1]], .$file[[1]])
         message(file)
@@ -259,7 +259,7 @@ if(file_n_only){
     #   scale_color_manual(breaks = c(F, T), values = c('black', 'red')) +
     #   scale_alpha_continuous(range = c(.5, 1), breaks = 1:max(slice_power_per_t$tile)) + 
     #   scale_size_manual(breaks = c(F, T), values = c(.25, 1)) + 
-    #   facet_wrap(~subject+run) + 
+    #   facet_wrap(~subjectID+run) + 
     #   theme(axis.text.x = element_text(size = 6))
     # +
     #   geom_rect(aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), 
