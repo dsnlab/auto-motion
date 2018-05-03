@@ -24,15 +24,16 @@
 #------------------------------------------------------
 
 # paths
-rpDir = '~/projects/dsnlab/tds/fMRI/analysis/fx/motion/auto-motion-output/rp_txt/'
-outputDir = '~/projects/dsnlab/tds/fMRI/analysis/fx/motion/auto-motion-output/'
-rpOutputDir = '~/projects/dsnlab/tds/fMRI/analysis/fx/motion/auto-motion-output/rp_auto_txt/'
-plotDir = '~/projects/dsnlab/tds/fMRI/analysis/fx/motion/auto-motion-output/plots/'
+rpDir = '/Volumes/psych-cog/dsnlab/FP/BDX_univariate/motion/rp_txt/'
+outputDir = '/Volumes/psych-cog/dsnlab/FP/BDX_univariate/motion/auto-motion-output/'
+rpOutputDir = '/Volumes/psych-cog/dsnlab/FP/BDX_univariate/motion/auto-motion-output/rp_auto_txt/'
+plotDir = '/Volumes/psych-cog/dsnlab/FP/BDX_univariate/motion/auto-motion-output/plots/'
 
 # variables
-study = "tds2"
-rpPattern = "^rp_([0-9]{3})_(.*).txt"
+study = "FP"
+rpPattern = "^rp_(FP[0-9]{3})_(.*).txt"
 rpCols = c("euclidian_trans","euclidian_rot","euclidian_trans_deriv","euclidian_rot_deriv","trash.rp")
+stripePattern = "FP_stripes_.*.csv"
 
 # write new rp_txt and plots files?
 writeRP = TRUE
