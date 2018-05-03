@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/96470945.svg)](https://zenodo.org/badge/latestdoi/96470945)
+
 # auto-motion
 Scripts for automated assessment of motion artifacts in fMRI data based on changes in global intensity and translation and rotation parameters.
 
