@@ -3,6 +3,8 @@
 # auto-motion
 Scripts for automated assessment of motion artifacts in fMRI data based on changes in global intensity and translation and rotation parameters.
 
+** Please note this code base is no longer being supported. Please check out recent work here: https://github.com/dcosme/auto-motion-fmriprep. **
+
 ## Pacakge installation on a SLURM cluster
 
 To install the required packages you can use the SLURM-ready script, "install_packages.bash" by running `sbatch install_packages.bash`. 
